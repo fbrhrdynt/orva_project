@@ -9,8 +9,7 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate --schema ../../prisma/schema.prisma",
-    "db:validate": "prisma validate --schema ../../prisma/schema.prisma",
-    "postinstall": "prisma generate --schema ../../prisma/schema.prisma"
+    "db:validate": "prisma validate --schema ../../prisma/schema.prisma"
   },
   "dependencies": {
     "next": "15.5.9",
