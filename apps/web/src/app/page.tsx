@@ -114,7 +114,7 @@ export default function Home() {
               {query ? <button className="clear-search" type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={14}/></button> : <kbd>⌘ K</kbd>}
             </label>
             <label className="filter-control">
-              <span className="sr-only">Filter applications</span>
+              <span className="filter-label">Category</span>
               <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}>
                 <option>All applications</option>
                 {groups.map((group) => <option key={group.name}>{group.name}</option>)}
