@@ -33,6 +33,8 @@ model Tenant {
   memberships TenantMembership[]
   companies   Company[]
   roles       Role[]
+  auditEvents AuditEvent[]
+  customFields CustomFieldDefinition[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -163,4 +165,48 @@ model MembershipRole {
 
   @@unique([membershipId, roleId])
   @@index([roleId])
+}
+
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model AuditEvent {
+  id          String        @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  severity    AuditSeverity @default(INFO)
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  occurredAt  DateTime      @default(now())
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, actorUserId, occurredAt])
+}
+
+model CustomFieldDefinition {
+  id          String   @id @default(cuid())
+  tenantId    String
+  entityKey   String
+  fieldKey    String
+  label       String
+  dataType    String
+  isRequired  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  configuration Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, entityKey, fieldKey])
+  @@index([tenantId, entityKey, isActive])
 }
