@@ -109,3 +109,14 @@ Before accepting a screen, verify:
 6. Is the screen consistent with other ORVA modules?
 7. Does it work at the required viewport sizes?
 8. Is it accessible and keyboard usable?
+
+## 11. Shared component implementation
+
+The web application implements reusable primitives under `apps/web/src/components/ui`:
+- Button: primary, secondary, ghost, and danger variants; small, medium, and large sizes.
+- Badge: neutral, info, success, warning, and danger semantic tones.
+- TextField and SelectField: associated labels, optional helper text, and validation support.
+- PageHeader: consistent eyebrow, title, description, and action placement.
+- DataTable: semantic table markup, aligned numeric columns, and an explicit empty state.
+
+New module screens should compose these primitives rather than introducing module-specific visual patterns. Add a new primitive only when it represents a repeated interaction pattern or a meaningful accessibility improvement.
