@@ -29,6 +29,6 @@ Authentication provider integration, password policy, sessions, MFA, invitation 
 
 1. Provision a PostgreSQL database.
 2. Copy `.env.example` to `.env` for local development and set `DATABASE_URL`.
-3. Install Prisma CLI and client in the web workspace before running migrations.
+3. Install Prisma CLI and client are installed in the web workspace. The schema lives at `apps/web/prisma/schema.prisma`.
 4. Generate a reviewed initial migration; do not use `db push` as a production deployment strategy.
 5. Apply migrations through a controlled release pipeline with a database backup and rollback plan.
