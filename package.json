@@ -1,0 +1,16 @@
+{
+  "name": "orva",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.8.0",
+  "scripts": {
+    "dev": "pnpm --filter @orva/web dev",
+    "build": "pnpm --filter @orva/web build",
+    "lint": "pnpm --filter @orva/web lint",
+    "typecheck": "pnpm --filter @orva/web typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3"
+  }
+}
