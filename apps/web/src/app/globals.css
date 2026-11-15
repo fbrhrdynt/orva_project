@@ -316,3 +316,36 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
 .erp-footer{display:flex;justify-content:space-between;gap:10px;margin-top:20px;padding-top:12px;border-top:1px solid #e4e7ec;color:#98a2b3;font-size:9px}
 @media(max-width:1100px){.erp-content{padding:28px 24px}.erp-two-col{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #e9ecf0}}
 @media(max-width:700px){.erp-sidebar{display:none}.erp-main{margin-left:0}.erp-topbar{height:54px;padding:0 16px}.erp-content{padding:24px 16px}.erp-page-head{align-items:flex-start;flex-direction:column}.erp-page-head h1{font-size:24px}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:13px 12px}.metric>strong{font-size:18px}.erp-two-col,.lower-panels{grid-template-columns:minmax(0,1fr)}.org-grid{grid-template-columns:1fr}.org-grid article{border-right:0;border-bottom:1px solid #edf0f3}.org-grid article:last-child{border-bottom:0}.erp-footer{flex-direction:column}.demo-flag{font-size:9px}}
+
+.master-page{min-height:100vh;background:#f6f7f9;color:#263244}
+.master-top{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 max(24px,calc((100vw - 1320px)/2));background:#fff;border-bottom:1px solid #e4e7ec}
+.master-top>a{display:flex;align-items:center;gap:7px;color:#667085;font-size:11px;text-decoration:none}
+.master-top>span{color:#1a2334;font-size:24px;font-weight:700;letter-spacing:-1.5px}
+.master-dot{color:#4263d6}
+.master-top>small{color:#8a94a3;font-size:9px;letter-spacing:.5px}
+.master-content{max-width:1320px;margin:0 auto;padding:38px 32px}
+.master-breadcrumb{margin-bottom:24px;color:#98a2b3;font-size:10px}
+.master-heading{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.master-heading h1{margin:0;color:#1a2334;font-size:26px;font-weight:600;letter-spacing:-.7px}
+.master-heading p{margin:7px 0 0;color:#7b8796;font-size:12px}
+.master-heading>span{color:#8c6b2b;font-size:9px;font-weight:700;letter-spacing:.5px}
+.master-company{margin-bottom:18px;padding:13px 15px;border:1px solid #e4e7ec;background:#fff;color:#667085;font-size:11px}
+.master-company strong{color:#344054;font-weight:600}
+.master-tabs{display:flex;gap:4px;border-bottom:1px solid #dfe3e9}
+.master-tabs button{display:flex;align-items:center;gap:8px;margin-bottom:-1px;padding:11px 13px;border:0;border-bottom:2px solid transparent;background:transparent;color:#778293;font-size:11px}
+.master-tabs button.selected{border-bottom-color:#4263d6;color:#253451;font-weight:600}
+.master-tabs button span{padding:2px 5px;background:#f0f2f5;color:#7d8796;font-size:9px}
+.master-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0;color:#8993a2;font-size:10px}
+.master-toolbar label{width:min(360px,100%);height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid #dfe3e9;background:#fff;color:#8993a2}
+.master-toolbar input{width:100%;border:0;outline:0;background:transparent;color:#344054;font-size:11px}
+.master-table-wrap{overflow-x:auto;border:1px solid #e4e7ec;background:#fff}
+.master-table{width:100%;border-collapse:collapse;white-space:nowrap}
+.master-table th{height:38px;padding:0 13px;background:#fafbfc;border-bottom:1px solid #e9ecf0;color:#7d8796;font-size:9px;font-weight:600;text-align:left}
+.master-table td{height:46px;padding:0 13px;border-bottom:1px solid #eff1f4;color:#596579;font-size:10px}
+.master-table tr:last-child td{border-bottom:0}
+.master-table tbody tr:hover{background:#fafbfd}
+.master-table .master-code{color:#40588f;font-weight:600}
+.master-number{text-align:right;font-variant-numeric:tabular-nums}
+.master-empty{text-align:center;color:#8993a2!important}
+.master-footnote{margin-top:12px;color:#98a2b3;font-size:10px;line-height:1.6}
+@media(max-width:640px){.master-top{padding:0 16px}.master-content{padding:26px 16px}.master-heading{align-items:flex-start;gap:10px}.master-heading h1{font-size:23px}.master-tabs{overflow-x:auto}.master-tabs button{white-space:nowrap}.master-table th,.master-table td{padding:0 10px}}
