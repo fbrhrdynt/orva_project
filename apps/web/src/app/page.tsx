@@ -104,7 +104,7 @@ export default function Home() {
               <h1>Applications</h1>
               <p>Access the tools your organization uses to run its business.</p>
             </div>
-            <div className="heading-meta"><span className="meta-label">PLATFORM RELEASE</span><strong>0.1.0.1</strong></div>
+            <div className="heading-meta"><span className="meta-label">PLATFORM RELEASE</span><strong>0.1.0.2</strong></div>
           </section>
 
           <div className="search-row">
@@ -146,7 +146,7 @@ export default function Home() {
             <div className="empty-state"><Search size={21}/><strong>No applications found</strong><span>Try a different search term or category.</span><button type="button" onClick={() => { setQuery(""); setGroupFilter("All applications"); }}>Clear filters</button></div>
           )}
 
-          <footer className="page-footer"><span><strong>orva.</strong><span className="footer-separator">/</span> by LogiSource Digital</span><span>Platform foundation · 0.1.0.1</span></footer>
+          <footer className="page-footer"><span><strong>orva.</strong><span className="footer-separator">/</span> by LogiSource Digital</span><span>Platform foundation · 0.1.0.2</span></footer>
         </div>
       </section>
     </main>
