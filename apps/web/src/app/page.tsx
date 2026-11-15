@@ -54,7 +54,7 @@ export default function Home() {
     <main className="app-shell">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-head">
-          <Link className="wordmark" href="/" aria-label="orva home">orva<span>.</span></a>
+          <Link className="wordmark" href="/" aria-label="orva home">orva<span>.</span></Link>
           <button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X size={18}/></button>
         </div>
         <button className="workspace-switcher" type="button">
