@@ -26,9 +26,9 @@ export default function MasterDataPage() {
       <div className="master-toolbar"><label><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()}...`} aria-label={`Search ${tab}`}/></label><span>{rows.length} records</span></div>
       <div className="master-table-wrap"><table className="master-table"><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
         {rows.map((row, index) => <tr key={index}>
-          {tab === "Customers" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.city}</td><td>{row.terms}</td><td className="master-number">{formatIDR(row.creditLimit)}</td></>}
+          {tab === "Customers" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.city}</td><td>{row.terms}</td><td className="master-number">{formatIDR(row.creditLimit ?? 0)}</td></>}
           {tab === "Suppliers" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.category}</td><td>{row.city}</td></>}
-          {tab === "Items" && <><td className="master-code">{row.sku}</td><td>{row.name}</td><td>{row.category}</td><td>{row.uom}</td><td className="master-number">{formatIDR(row.unitCost)}</td></>}
+          {tab === "Items" && <><td className="master-code">{row.sku}</td><td>{row.name}</td><td>{row.category}</td><td>{row.uom}</td><td className="master-number">{formatIDR(row.unitCost ?? 0)}</td></>}
           {tab === "Warehouses" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.unit}</td></>}
         </tr>)}
         {rows.length === 0 && <tr><td colSpan={columns.length} className="master-empty">No matching records</td></tr>}
