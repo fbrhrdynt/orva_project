@@ -6,11 +6,12 @@ import { ArrowLeft, Search } from "lucide-react";
 import { DEMO_WORKSPACE, formatIDR } from "@/lib/demo-data";
 
 type Tab = "Customers" | "Suppliers" | "Items" | "Warehouses";
+type MasterRow = { code?: string; sku?: string; name?: string; city?: string; terms?: string; creditLimit?: number; category?: string; uom?: string; unitCost?: number; unit?: string };
 export default function MasterDataPage() {
   const [tab, setTab] = useState<Tab>("Customers");
   const [query, setQuery] = useState("");
   const rows = useMemo(() => {
-    const source = tab === "Customers" ? DEMO_WORKSPACE.customers : tab === "Suppliers" ? DEMO_WORKSPACE.suppliers : tab === "Items" ? DEMO_WORKSPACE.items : DEMO_WORKSPACE.warehouses;
+    const source: readonly MasterRow[] = tab === "Customers" ? DEMO_WORKSPACE.customers : tab === "Suppliers" ? DEMO_WORKSPACE.suppliers : tab === "Items" ? DEMO_WORKSPACE.items : DEMO_WORKSPACE.warehouses;
     const term = query.trim().toLowerCase();
     return source.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(term)));
   }, [tab, query]);
