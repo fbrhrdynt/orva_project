@@ -23,7 +23,7 @@ async function assertCompany(context: VerifiedTenantContext, companyId: string) 
   if (!company) throw new Error("Company was not found in the active tenant.");
 }
 
-export async function listCustomers(context: VerifiedTenantContext, companyId: string, search = ""): Promise<MasterDataResult<Awaited<ReturnType<typeof db.customer.findMany>>>> {
+export async function listCustomers(context: VerifiedTenantContext, companyId: string, search = ""): Promise<{ items: Awaited<ReturnType<typeof db.customer.findMany>>; total: number }> {
   requirePermission(context, "master-data.customer.read");
   await assertCompany(context, companyId);
   const term = search.trim();
