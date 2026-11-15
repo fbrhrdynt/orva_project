@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Activity, ArrowDownUp, ArrowUpRight, Boxes, BriefcaseBusiness, Building2,
   ChevronDown, CircleHelp, Command, FileText, LayoutGrid, Menu, Search,
@@ -53,7 +54,7 @@ export default function Home() {
     <main className="app-shell">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-head">
-          <a className="wordmark" href="/" aria-label="orva home">orva<span>.</span></a>
+          <Link className="wordmark" href="/" aria-label="orva home">orva<span>.</span></a>
           <button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><X size={18}/></button>
         </div>
         <button className="workspace-switcher" type="button">
@@ -64,7 +65,7 @@ export default function Home() {
 
         <div className="nav-label">WORKSPACE</div>
         <nav className="main-nav" aria-label="Main navigation">
-          <a className="nav-item active" href="/" aria-current="page"><LayoutGrid size={17}/><span>Applications</span></a>
+          <Link className="nav-item active" href="/" aria-current="page"><LayoutGrid size={17}/><span>Applications</span></Link>
           <a className="nav-item" href="#activity"><Activity size={17}/><span>My activity</span></a>
           <a className="nav-item" href="#tasks"><FileText size={17}/><span>My tasks</span><span className="nav-count">0</span></a>
         </nav>
