@@ -36,6 +36,10 @@ jobs:
               git push
             fi
           fi
+      - name: Validate database schema
+        env:
+          DATABASE_URL: postgresql://orva:orva@localhost:5432/orva?schema=public
+        run: pnpm db:validate
       - name: Lint
         run: pnpm lint
       - name: Type check
