@@ -14,7 +14,7 @@
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--canvas); color: var(--text-primary); font-family: var(--font-manrope), sans-serif; font-size: 13px; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--canvas); color: var(--text-primary); font-family: "Manrope Variable", Manrope, sans-serif; font-size: 13px; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
 button, select { cursor: pointer; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
