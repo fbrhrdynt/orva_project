@@ -39,7 +39,7 @@ export async function resolveTenantContext(
     membershipId: membership.id,
     companyIds: membership.companyAccess
       .filter((access: { company: { tenantId: string }; companyId: string }) => access.company.tenantId === membership.tenantId)
-      .map((access) => access.companyId),
+      .map((access: { companyId: string }) => access.companyId),
     permissions
   };
 }
