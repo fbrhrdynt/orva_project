@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import "@fontsource-variable/manrope";
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-manrope",
-  weight: ["400", "500", "600", "700"]
-});
 
 export const metadata: Metadata = {
   title: "orva. | Enterprise Business Platform",
@@ -19,7 +12,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={manrope.className}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
