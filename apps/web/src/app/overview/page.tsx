@@ -22,7 +22,7 @@ export default function OverviewPage() {
         <a className="erp-nav-link" href="#procurement"><ClipboardCheck size={16}/>Procurement</a>
         <a className="erp-nav-link" href="#inventory"><Package size={16}/>Inventory</a>
         <a className="erp-nav-link" href="#finance"><Wallet size={16}/>Finance</a>
-        <a className="erp-nav-link" href="#organization"><Building2 size={16}/>Organization</a>
+        <Link className="erp-nav-link" href="/master-data"><Building2 size={16}/>Master data</Link>
         <a className="erp-nav-link" href="#activity"><FileText size={16}/>Activity log</a>
       </nav>
       <div className="erp-sidebar-bottom"><span className="erp-avatar">AP</span><span><strong>Aditya Pranata</strong><small>Finance Manager</small></span><ChevronDown size={14}/></div>
