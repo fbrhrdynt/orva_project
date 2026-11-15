@@ -36,6 +36,8 @@ jobs:
               git push
             fi
           fi
+      - name: Generate Prisma client
+        run: pnpm db:generate
       - name: Validate database schema
         env:
           DATABASE_URL: postgresql://orva:orva@localhost:5432/orva?schema=public
