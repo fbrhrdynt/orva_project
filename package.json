@@ -7,7 +7,9 @@
     "dev": "pnpm --filter @orva/web dev",
     "build": "pnpm --filter @orva/web build",
     "lint": "pnpm --filter @orva/web lint",
-    "typecheck": "pnpm --filter @orva/web typecheck"
+    "typecheck": "pnpm --filter @orva/web typecheck",
+    "db:generate": "pnpm --filter @orva/web db:generate",
+    "db:validate": "pnpm --filter @orva/web db:validate"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
