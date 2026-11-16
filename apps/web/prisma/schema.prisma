@@ -282,6 +282,8 @@ model Item {
   @@unique([companyId, sku])
   @@index([tenantId, companyId, isActive])
   @@index([tenantId, name])
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model Warehouse {
@@ -461,6 +463,7 @@ model PurchaseOrder {
   @@unique([tenantId, documentNumber])
   @@index([tenantId, companyId, status, documentDate])
   @@index([tenantId, supplierId, documentDate])
+  goodsReceipts GoodsReceipt[]
 }
 
 model PurchaseOrderLine {
@@ -509,6 +512,9 @@ model GoodsReceipt {
   @@unique([tenantId, documentNumber])
   @@index([tenantId, companyId, receivedAt])
   @@index([tenantId, purchaseOrderId])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
 }
 
 model GoodsReceiptLine {
