@@ -9,7 +9,10 @@
     "lint": "pnpm --filter @orva/web lint",
     "typecheck": "pnpm --filter @orva/web typecheck",
     "db:generate": "pnpm --filter @orva/web db:generate",
-    "db:validate": "pnpm --filter @orva/web db:validate"
+    "db:validate": "pnpm --filter @orva/web db:validate",
+    "db:migrate": "pnpm --filter @orva/web db:migrate",
+    "db:status": "pnpm --filter @orva/web db:status",
+    "db:seed": "pnpm --filter @orva/web db:seed"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
