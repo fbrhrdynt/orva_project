@@ -48,6 +48,9 @@ model Tenant {
   updatedAt   DateTime     @updatedAt
 
   @@index([status])
+  goodsReceipts GoodsReceipt[]
+  purchaseOrders PurchaseOrder[]
+  purchaseRequisitions PurchaseRequisition[]
 }
 
 model User {
@@ -104,6 +107,9 @@ model Company {
 
   @@unique([tenantId, code])
   @@index([tenantId, isActive])
+  goodsReceipts GoodsReceipt[]
+  purchaseOrders PurchaseOrder[]
+  purchaseRequisitions PurchaseRequisition[]
 }
 
 model BusinessUnit {
@@ -239,6 +245,8 @@ model ItemCategory {
 
   @@unique([tenantId, code])
   @@index([tenantId, name])
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model UnitOfMeasure {
@@ -280,6 +288,8 @@ model Item {
   @@unique([companyId, sku])
   @@index([tenantId, companyId, isActive])
   @@index([tenantId, name])
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model Warehouse {
@@ -459,6 +469,7 @@ model PurchaseOrder {
   @@unique([tenantId, documentNumber])
   @@index([tenantId, companyId, status, documentDate])
   @@index([tenantId, supplierId, documentDate])
+  goodsReceipts GoodsReceipt[]
 }
 
 model PurchaseOrderLine {
