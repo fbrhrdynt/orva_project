@@ -95,6 +95,162 @@ async function assertCompany(
   if (!company) throw new Error("Company was not found in the active tenant.");
 }
 
+
+type PurchaseRequisitionLineInput = {
+  itemId?: string;
+  description: string;
+  quantity: string | number;
+  uomCode: string;
+  estimatedPrice?: string | number;
+};
+
+type CreatePurchaseRequisitionInput = {
+  companyId: string;
+  documentNumber: string;
+  requiredAt?: Date;
+  purpose?: string;
+  currency?: string;
+  notes?: string;
+  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  lines: PurchaseRequisitionLineInput[];
+};
+
+export async function listPurchaseRequisitions(
+  context: VerifiedTenantContext,
+  input: { companyId: string; search?: string; status?: string; take?: number },
+) {
+  requirePermission(context, "procurement.purchase_requisition.read");
+  await assertCompany(context, input.companyId);
+  const validStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED"] as const;
+  const selectedStatus = input.status?.trim();
+  if (selectedStatus && !validStatuses.some((status) => status === selectedStatus)) {
+    throw new Error("Purchase requisition status is invalid.");
+  }
+  const statusFilter = selectedStatus as (typeof validStatuses)[number] | undefined;
+  const term = input.search?.trim();
+  const where = {
+    tenantId: context.tenantId,
+    companyId: input.companyId,
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(term ? { OR: [
+      { documentNumber: { contains: term, mode: "insensitive" as const } },
+      { purpose: { contains: term, mode: "insensitive" as const } },
+    ] } : {}),
+  };
+  const take = Math.min(Math.max(input.take ?? 50, 1), 100);
+  const [items, total] = await db.$transaction([
+    db.purchaseRequisition.findMany({
+      where,
+      include: { lines: true },
+      orderBy: [{ requestedAt: "desc" }, { documentNumber: "desc" }],
+      take,
+    }),
+    db.purchaseRequisition.count({ where }),
+  ]);
+  return { items, total };
+}
+
+export async function createPurchaseRequisition(
+  context: VerifiedTenantContext,
+  input: CreatePurchaseRequisitionInput,
+) {
+  requirePermission(context, "procurement.purchase_requisition.create");
+  await assertCompany(context, input.companyId);
+  const documentNumber = requiredText(input.documentNumber, "Purchase requisition number", 40).toUpperCase();
+  const currency = currencyCode(input.currency);
+  if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 500) {
+    throw new Error("A purchase requisition must contain between 1 and 500 lines.");
+  }
+  const lineData = input.lines.map((line, index) => ({
+    lineNumber: index + 1,
+    itemId: line.itemId?.trim() || undefined,
+    description: requiredText(line.description, `Line ${index + 1} description`),
+    quantity: positiveDecimal(line.quantity, `Line ${index + 1} quantity`),
+    uomCode: requiredText(line.uomCode, `Line ${index + 1} unit of measure`, 16).toUpperCase(),
+    estimatedPrice: line.estimatedPrice === undefined ? undefined : decimal(line.estimatedPrice, `Line ${index + 1} estimated price`),
+    currency,
+  }));
+  if (lineData.some((line) => line.estimatedPrice?.lt(0))) throw new Error("Estimated prices cannot be negative.");
+  const itemIds = [...new Set(lineData.map((line) => line.itemId).filter((id): id is string => Boolean(id)))];
+  if (itemIds.length) {
+    const validItems = await db.item.findMany({
+      where: { id: { in: itemIds }, tenantId: context.tenantId, companyId: input.companyId, isActive: true, isPurchase: true },
+      select: { id: true },
+    });
+    if (validItems.length !== itemIds.length) throw new Error("One or more items are not active purchase items in this company.");
+  }
+  const requisition = await db.purchaseRequisition.create({
+    data: {
+      tenantId: context.tenantId,
+      companyId: input.companyId,
+      documentNumber,
+      requestedById: context.userId,
+      requiredAt: input.requiredAt,
+      purpose: input.purpose?.trim() || undefined,
+      currency,
+      notes: input.notes?.trim() || undefined,
+      priority: input.priority ?? "NORMAL",
+      lines: { create: lineData },
+    },
+    include: { lines: true },
+  });
+  await writeAuditEvent(context, {
+    action: "procurement.purchase_requisition.created",
+    entityType: "PurchaseRequisition",
+    entityId: requisition.id,
+    metadata: { documentNumber, companyId: input.companyId, lineCount: lineData.length },
+  });
+  return requisition;
+}
+
+export async function submitPurchaseRequisition(context: VerifiedTenantContext, companyId: string, requisitionId: string) {
+  requirePermission(context, "procurement.purchase_requisition.submit");
+  await assertCompany(context, companyId);
+  const id = requiredText(requisitionId, "Purchase requisition ID");
+  const updated = await db.purchaseRequisition.updateMany({
+    where: { id, tenantId: context.tenantId, companyId, status: "DRAFT" },
+    data: { status: "SUBMITTED", submittedAt: new Date() },
+  });
+  if (updated.count !== 1) throw new Error("Only a draft purchase requisition in this company can be submitted.");
+  const result = await db.purchaseRequisition.findFirstOrThrow({
+    where: { id, tenantId: context.tenantId, companyId },
+    include: { lines: true },
+  });
+  await writeAuditEvent(context, { action: "procurement.purchase_requisition.submitted", entityType: "PurchaseRequisition", entityId: id });
+  return result;
+}
+
+export async function reviewPurchaseRequisition(
+  context: VerifiedTenantContext,
+  input: { companyId: string; requisitionId: string; decision: "APPROVE" | "REJECT"; reason?: string },
+) {
+  const permission = input.decision === "APPROVE" ? "procurement.purchase_requisition.approve" : "procurement.purchase_requisition.reject";
+  requirePermission(context, permission);
+  await assertCompany(context, input.companyId);
+  const id = requiredText(input.requisitionId, "Purchase requisition ID");
+  const reason = input.decision === "REJECT" ? requiredText(input.reason ?? "", "Rejection reason", 1000) : undefined;
+  const data = input.decision === "APPROVE"
+    ? { status: "APPROVED" as const, approvedAt: new Date(), approvedById: context.userId }
+    : { status: "REJECTED" as const, rejectedAt: new Date(), rejectedById: context.userId, rejectionReason: reason };
+  const updated = await db.purchaseRequisition.updateMany({
+    where: { id, tenantId: context.tenantId, companyId: input.companyId, status: "SUBMITTED" },
+    data,
+  });
+  if (updated.count !== 1) throw new Error("Only a submitted purchase requisition in this company can be reviewed.");
+  const result = await db.purchaseRequisition.findFirstOrThrow({
+    where: { id, tenantId: context.tenantId, companyId: input.companyId },
+    include: { lines: true },
+  });
+  await writeAuditEvent(context, {
+    action: input.decision === "APPROVE" ? "procurement.purchase_requisition.approved" : "procurement.purchase_requisition.rejected",
+    entityType: "PurchaseRequisition",
+    entityId: id,
+    severity: input.decision === "REJECT" ? "WARNING" : "INFO",
+    metadata: reason ? { reason } : undefined,
+  });
+  return result;
+}
+
 export async function listPurchaseOrders(
   context: VerifiedTenantContext,
   input: { companyId: string; search?: string; status?: string; take?: number },
