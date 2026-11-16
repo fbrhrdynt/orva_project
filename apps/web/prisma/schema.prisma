@@ -512,17 +512,14 @@ model GoodsReceipt {
 }
 
 model GoodsReceiptLine {
-  id              String @id @default(cuid())
-  goodsReceiptId  String
+  id                 String @id @default(cuid())
+  goodsReceiptId     String
   purchaseOrderLineId String
-  quantity        Decimal @db.Decimal(20, 4)
-  notes           String?
-  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
-  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
-  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
-  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
-  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now())
+  quantity           Decimal @db.Decimal(20, 4)
+  notes              String?
+  goodsReceipt       GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLine  PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  createdAt          DateTime @default(now())
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
