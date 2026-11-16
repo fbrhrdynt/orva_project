@@ -57,3 +57,10 @@ ORVA may later integrate with external products through explicitly designed and 
 ## Development status
 
 ORVA is in its initial foundation stage. No module should be considered production-ready until its domain model, permissions, audit requirements, business workflows, tests, and operational behavior have been reviewed.
+
+
+## VPS deployment
+
+See [VPS deployment guide](docs/VPS-DEPLOYMENT.md) for the Ubuntu, systemd, Nginx, PostgreSQL and deployment script workflow.
+
+The initial database setup uses a development-only Prisma schema push. This is not a production migration strategy. Authentication and database-backed procurement actions are not yet production-enabled.
