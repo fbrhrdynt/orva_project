@@ -48,6 +48,7 @@ model Tenant {
   purchaseOrders PurchaseOrder[]
   purchaseRequisitions PurchaseRequisition[]
   goodsReceipts GoodsReceipt[]
+  sessions Session[]
 }
 
 model User {
@@ -61,6 +62,7 @@ model User {
   updatedAt    DateTime            @updatedAt
 
   @@index([status])
+  sessions Session[]
 }
 
 model TenantMembership {
@@ -522,4 +524,29 @@ model GoodsReceiptLine {
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
+}
+
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  tenantId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  lastSeenAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([tenantId, expiresAt])
+}
+
+model AuthThrottle {
+  key             String   @id
+  attempts        Int      @default(0)
+  windowStartedAt DateTime @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime @updatedAt
 }
