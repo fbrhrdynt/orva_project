@@ -41,6 +41,8 @@ model Tenant {
   warehouses Warehouse[]
   customers Customer[]
   suppliers Supplier[]
+  purchaseOrders PurchaseOrder[]
+  purchaseRequisitions PurchaseRequisition[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -345,4 +347,162 @@ model Supplier {
   @@unique([companyId, code])
   @@index([tenantId, companyId, isActive])
   @@index([tenantId, name])
+}
+
+
+enum ProcurementDocumentStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum ProcurementPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model PurchaseRequisition {
+  id             String @id @default(cuid())
+  tenantId       String
+  companyId      String
+  documentNumber String
+  requestedById  String
+  requestedAt    DateTime @default(now())
+  requiredAt     DateTime?
+  purpose        String?
+  status         ProcurementDocumentStatus @default(DRAFT)
+  priority       ProcurementPriority @default(NORMAL)
+  currency       String @default("IDR")
+  notes          String?
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  approvedById   String?
+  rejectedAt     DateTime?
+  rejectedById   String?
+  rejectionReason String?
+  lines          PurchaseRequisitionLine[]
+  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, documentNumber])
+  @@index([tenantId, companyId, status, requestedAt])
+  @@index([tenantId, requestedById])
+}
+
+model PurchaseRequisitionLine {
+  id             String @id @default(cuid())
+  requisitionId  String
+  lineNumber     Int
+  itemId         String?
+  description    String
+  quantity       Decimal @db.Decimal(20, 4)
+  uomCode        String
+  estimatedPrice Decimal? @db.Decimal(20, 4)
+  currency       String @default("IDR")
+  requisition    PurchaseRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([requisitionId, lineNumber])
+}
+
+model PurchaseOrder {
+  id                String @id @default(cuid())
+  tenantId          String
+  companyId         String
+  supplierId        String
+  documentNumber    String
+  documentDate      DateTime @default(now())
+  expectedAt        DateTime?
+  currency          String @default("IDR")
+  exchangeRate      Decimal @default(1) @db.Decimal(20, 8)
+  status            ProcurementDocumentStatus @default(DRAFT)
+  priority          ProcurementPriority @default(NORMAL)
+  paymentTermDays   Int @default(30)
+  supplierReference String?
+  deliveryAddress   String?
+  notes             String?
+  subtotal          Decimal @default(0) @db.Decimal(20, 4)
+  discountTotal     Decimal @default(0) @db.Decimal(20, 4)
+  taxTotal          Decimal @default(0) @db.Decimal(20, 4)
+  grandTotal        Decimal @default(0) @db.Decimal(20, 4)
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  approvedById      String?
+  rejectedAt        DateTime?
+  rejectedById      String?
+  rejectionReason   String?
+  lines             PurchaseOrderLine[]
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company           Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, documentNumber])
+  @@index([tenantId, companyId, status, documentDate])
+  @@index([tenantId, supplierId, documentDate])
+}
+
+model PurchaseOrderLine {
+  id             String @id @default(cuid())
+  purchaseOrderId String
+  lineNumber     Int
+  itemId         String?
+  description    String
+  quantity       Decimal @db.Decimal(20, 4)
+  receivedQty    Decimal @default(0) @db.Decimal(20, 4)
+  uomCode        String
+  unitPrice      Decimal @db.Decimal(20, 4)
+  discountRate   Decimal @default(0) @db.Decimal(9, 4)
+  taxRate        Decimal @default(0) @db.Decimal(9, 4)
+  lineSubtotal   Decimal @db.Decimal(20, 4)
+  lineTax        Decimal @db.Decimal(20, 4)
+  lineTotal      Decimal @db.Decimal(20, 4)
+  purchaseOrder  PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([purchaseOrderId, lineNumber])
+}
+
+model GoodsReceipt {
+  id             String @id @default(cuid())
+  tenantId       String
+  companyId      String
+  purchaseOrderId String
+  documentNumber String
+  receivedAt     DateTime @default(now())
+  receivedById   String
+  warehouseId    String
+  supplierDeliveryNote String?
+  notes          String?
+  lines          GoodsReceiptLine[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, documentNumber])
+  @@index([tenantId, companyId, receivedAt])
+  @@index([tenantId, purchaseOrderId])
+}
+
+model GoodsReceiptLine {
+  id              String @id @default(cuid())
+  goodsReceiptId  String
+  purchaseOrderLineId String
+  quantity        Decimal @db.Decimal(20, 4)
+  notes           String?
+  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderLineId])
 }
