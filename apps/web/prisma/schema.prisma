@@ -39,6 +39,7 @@ model Tenant {
   unitsOfMeasure UnitOfMeasure[]
   items Item[]
   warehouses Warehouse[]
+  goodsReceipts GoodsReceipt[]
   customers Customer[]
   suppliers Supplier[]
   purchaseOrders PurchaseOrder[]
@@ -92,6 +93,7 @@ model Company {
   units       BusinessUnit[]
   items       Item[]
   warehouses  Warehouse[]
+  goodsReceipts GoodsReceipt[]
   customers   Customer[]
   suppliers   Supplier[]
   purchaseOrders PurchaseOrder[]
@@ -232,6 +234,8 @@ model ItemCategory {
   name      String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   items     Item[]
+  purchaseRequisitionLines PurchaseRequisitionLine[]
+  purchaseOrderLines PurchaseOrderLine[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -291,6 +295,7 @@ model Warehouse {
   isActive    Boolean  @default(true)
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  goodsReceipts GoodsReceipt[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -317,7 +322,6 @@ model Customer {
   isActive       Boolean  @default(true)
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company        Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  goodsReceipts GoodsReceipt[]
   purchaseOrders PurchaseOrder[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -514,6 +518,8 @@ model GoodsReceiptLine {
   quantity        Decimal @db.Decimal(20, 4)
   notes           String?
   goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
   goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
   purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
   createdAt       DateTime @default(now())
