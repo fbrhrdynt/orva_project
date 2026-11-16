@@ -102,7 +102,7 @@ export async function listPurchaseOrders(
   requirePermission(context, "procurement.purchase_order.read");
   await assertCompany(context, input.companyId);
   const term = input.search?.trim();
-  const allowedStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED"];
+  const allowedStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED"] as const;
   if (input.status && !allowedStatuses.includes(input.status)) throw new Error("Purchase order status is invalid.");
   const where = {
     tenantId: context.tenantId,
