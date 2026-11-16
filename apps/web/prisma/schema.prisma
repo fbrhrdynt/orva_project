@@ -317,6 +317,7 @@ model Customer {
   isActive       Boolean  @default(true)
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company        Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  goodsReceipts GoodsReceipt[]
   purchaseOrders PurchaseOrder[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -408,6 +409,7 @@ model PurchaseRequisitionLine {
   itemId         String?
   description    String
   quantity       Decimal @db.Decimal(20, 4)
+  item           Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
   uomCode        String
   estimatedPrice Decimal? @db.Decimal(20, 4)
   currency       String @default("IDR")
@@ -445,6 +447,7 @@ model PurchaseOrder {
   rejectedById      String?
   rejectionReason   String?
   lines             PurchaseOrderLine[]
+  goodsReceipts     GoodsReceipt[]
   tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company           Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
   supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
@@ -464,6 +467,7 @@ model PurchaseOrderLine {
   description    String
   quantity       Decimal @db.Decimal(20, 4)
   receivedQty    Decimal @default(0) @db.Decimal(20, 4)
+  goodsReceiptLines GoodsReceiptLine[]
   uomCode        String
   unitPrice      Decimal @db.Decimal(20, 4)
   discountRate   Decimal @default(0) @db.Decimal(9, 4)
@@ -471,6 +475,7 @@ model PurchaseOrderLine {
   lineSubtotal   Decimal @db.Decimal(20, 4)
   lineTax        Decimal @db.Decimal(20, 4)
   lineTotal      Decimal @db.Decimal(20, 4)
+  item           Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
   purchaseOrder  PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -490,6 +495,10 @@ model GoodsReceipt {
   supplierDeliveryNote String?
   notes          String?
   lines          GoodsReceiptLine[]
+  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  warehouse      Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -505,6 +514,8 @@ model GoodsReceiptLine {
   quantity        Decimal @db.Decimal(20, 4)
   notes           String?
   goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  goodsReceipt    GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLine PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
   createdAt       DateTime @default(now())
 
   @@index([goodsReceiptId])
