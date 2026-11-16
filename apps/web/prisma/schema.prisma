@@ -234,8 +234,6 @@ model ItemCategory {
   name      String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   items     Item[]
-  purchaseRequisitionLines PurchaseRequisitionLine[]
-  purchaseOrderLines PurchaseOrderLine[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -282,8 +280,6 @@ model Item {
   @@unique([companyId, sku])
   @@index([tenantId, companyId, isActive])
   @@index([tenantId, name])
-  purchaseRequisitionLines PurchaseRequisitionLine[]
-  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model Warehouse {
