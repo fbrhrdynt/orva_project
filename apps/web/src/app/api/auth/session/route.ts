@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSession, getVerifiedTenantContext } from "@/lib/auth/session";
+import { getVerifiedTenantContext } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
