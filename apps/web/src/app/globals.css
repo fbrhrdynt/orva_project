@@ -426,3 +426,29 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
  .procurement-table th:first-child,.procurement-table td:first-child { padding-left:14px; }
  .procurement-table td { padding:12px 10px; }
 }
+
+
+/* Authentication */
+.orva-login-page { min-height:100vh; display:flex; flex-direction:column; background:#F7F8FA; }
+.orva-login-header { height:68px; display:flex; align-items:center; justify-content:space-between; padding:0 5vw; border-bottom:1px solid #E7EAF0; background:#fff; }
+.orva-login-wordmark { color:#1A2334; font-size:27px; font-weight:750; letter-spacing:-1.8px; text-decoration:none; }
+.orva-login-wordmark span { color:#4263D6; }
+.orva-login-header > span { color:#98A2B3; font-size:9px; font-weight:700; letter-spacing:1px; }
+.orva-login-card { width:min(420px,calc(100% - 36px)); margin:auto; padding:34px; border:1px solid #E7EAF0; border-radius:7px; background:#fff; box-shadow:0 12px 40px rgba(26,35,52,.045); }
+.orva-login-icon { width:40px; height:40px; display:grid; place-items:center; margin-bottom:23px; border:1px solid #E6EAF2; border-radius:5px; background:#F7F8FB; color:#4263D6; }
+.orva-login-kicker { color:#4263D6; font-size:9px; font-weight:700; letter-spacing:1px; }
+.orva-login-card h1 { margin:8px 0 0; color:#1A2334; font-size:24px; font-weight:650; letter-spacing:-.7px; }
+.orva-login-description { margin:9px 0 24px; color:#778294; font-size:11px; line-height:1.7; }
+.orva-login-form { display:grid; gap:15px; }
+.orva-login-form label { display:grid; gap:7px; color:#475467; font-size:10px; font-weight:650; }
+.orva-login-form input { width:100%; height:40px; padding:0 11px; border:1px solid #DDE2EA; border-radius:4px; outline:none; background:#fff; color:#273346; font-size:11px; font-weight:400; }
+.orva-login-form input:focus { border-color:#8EA2E5; box-shadow:0 0 0 3px rgba(66,99,214,.09); }
+.orva-login-form input::placeholder { color:#A0A8B5; }
+.orva-login-form button { height:42px; display:flex; align-items:center; justify-content:center; gap:9px; margin-top:3px; border:1px solid #344FAE; border-radius:4px; background:#4263D6; color:#fff; font-size:11px; font-weight:650; transition:background 120ms ease; }
+.orva-login-form button:hover:not(:disabled) { background:#3454C4; }
+.orva-login-form button:disabled { cursor:wait; opacity:.7; }
+.orva-login-error { margin:0; padding:10px; border:1px solid #F3D5D5; border-radius:4px; background:#FFF8F7; color:#B33A35; font-size:10px; line-height:1.5; }
+.orva-login-footnote { margin:20px 0 0; padding-top:15px; border-top:1px solid #EDF0F4; color:#98A2B3; font-size:9px; line-height:1.6; }
+.orva-login-footer { padding:18px; color:#98A2B3; font-size:9px; text-align:center; }
+.orva-login-footer span { padding:0 4px; color:#C4CAD3; }
+@media(max-width:520px) { .orva-login-header { height:58px; padding:0 18px; } .orva-login-header > span { font-size:7px; } .orva-login-card { padding:26px 21px; } }
