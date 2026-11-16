@@ -23,7 +23,7 @@ Use a dedicated PostgreSQL role with access only to the ORVA database. Never use
 
 ## Initial deploy / update
 
-Run as the `ubuntu` application user. The script fetches the selected branch (default `main`), installs dependencies, validates/generates Prisma, applies the Prisma schema, builds Next.js, restarts systemd, and checks the health endpoint.
+Run as the `ubuntu` application user. The script fetches the selected branch (default `main`), installs dependencies, validates/generates Prisma, builds Next.js, restarts systemd, and checks the health endpoint. It skips database schema synchronization unless explicitly requested.
 
 ```bash
 cd /opt/orva
@@ -31,7 +31,13 @@ chmod +x scripts/deploy-vps.sh
 ./scripts/deploy-vps.sh
 ```
 
-To deploy a feature branch for preview:
+For the first setup only, after confirming the target database is empty, initialize its schema explicitly:
+
+```bash
+INITIALIZE_DATABASE=1 ./scripts/deploy-vps.sh
+```
+
+Routine application updates do not push schema changes. To deploy a feature branch for preview:
 
 ```bash
 DEPLOY_BRANCH=feature/procurement-workspace ./scripts/deploy-vps.sh
