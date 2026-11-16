@@ -20,7 +20,7 @@ type Application = {
 const applications: Application[] = [
   { name: "Finance", description: "Accounting, reporting and financial control", icon: Wallet, group: "Core business", status: "Planned" },
   { name: "Sales", description: "Customers, quotations and order management", icon: ShoppingCart, group: "Core business", status: "Planned" },
-  { name: "Procurement", description: "Sourcing, purchasing and supplier relations", icon: Boxes, group: "Core business", status: "Planned" },
+  { name: "Procurement", description: "Sourcing, purchasing and supplier relations", icon: Boxes, group: "Core business", status: "Available" },
   { name: "Inventory", description: "Stock control and warehouse operations", icon: Building2, group: "Core business", status: "Planned" },
   { name: "People", description: "Workforce and organizational management", icon: Users, group: "People & operations", status: "Planned" },
   { name: "Projects", description: "Projects, resources and delivery", icon: BriefcaseBusiness, group: "People & operations", status: "Planned" },
@@ -134,12 +134,12 @@ export default function Home() {
               </div>
               <div className="application-grid">
                 {group.items.map(({ name, description, icon: Icon, status }) => (
-                  <article className="application-item" key={name}>
+                  <Link href={name === "Procurement" ? "/procurement" : "#"} className="application-item" key={name}>
                     <div className="application-icon"><Icon size={19} strokeWidth={1.7}/></div>
                     <div className="application-copy"><h3>{name}</h3><p>{description}</p></div>
                     <span className="application-status">{status}</span>
                     <ArrowUpRight className="application-arrow" size={15}/>
-                  </article>
+                  </Link>
                 ))}
               </div>
             </section>
