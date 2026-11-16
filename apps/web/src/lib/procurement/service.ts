@@ -103,11 +103,15 @@ export async function listPurchaseOrders(
   await assertCompany(context, input.companyId);
   const term = input.search?.trim();
   const allowedStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PARTIALLY_RECEIVED", "RECEIVED", "CANCELLED"] as const;
-  if (input.status && !allowedStatuses.includes(input.status)) throw new Error("Purchase order status is invalid.");
+  const selectedStatus = input.status?.trim();
+  if (selectedStatus && !allowedStatuses.some((status) => status === selectedStatus)) {
+    throw new Error("Purchase order status is invalid.");
+  }
+  const statusFilter = selectedStatus as (typeof allowedStatuses)[number] | undefined;
   const where = {
     tenantId: context.tenantId,
     companyId: input.companyId,
-    ...(input.status ? { status: input.status as (typeof allowedStatuses)[number] } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
     ...(term ? {
       OR: [
         { documentNumber: { contains: term, mode: "insensitive" as const } },
