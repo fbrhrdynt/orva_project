@@ -107,7 +107,6 @@ model Company {
 
   @@unique([tenantId, code])
   @@index([tenantId, isActive])
-  goodsReceipts GoodsReceipt[]
   purchaseOrders PurchaseOrder[]
   purchaseRequisitions PurchaseRequisition[]
 }
@@ -288,8 +287,6 @@ model Item {
   @@unique([companyId, sku])
   @@index([tenantId, companyId, isActive])
   @@index([tenantId, name])
-  purchaseRequisitionLines PurchaseRequisitionLine[]
-  purchaseOrderLines PurchaseOrderLine[]
 }
 
 model Warehouse {
@@ -303,7 +300,6 @@ model Warehouse {
   isActive    Boolean  @default(true)
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  goodsReceipts GoodsReceipt[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -469,7 +465,6 @@ model PurchaseOrder {
   @@unique([tenantId, documentNumber])
   @@index([tenantId, companyId, status, documentDate])
   @@index([tenantId, supplierId, documentDate])
-  goodsReceipts GoodsReceipt[]
 }
 
 model PurchaseOrderLine {
