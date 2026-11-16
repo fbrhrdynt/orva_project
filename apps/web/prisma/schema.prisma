@@ -491,30 +491,27 @@ model PurchaseOrderLine {
 }
 
 model GoodsReceipt {
-  id             String @id @default(cuid())
-  tenantId       String
-  companyId      String
-  purchaseOrderId String
-  documentNumber String
-  receivedAt     DateTime @default(now())
-  receivedById   String
-  warehouseId    String
+  id                  String @id @default(cuid())
+  tenantId            String
+  companyId           String
+  purchaseOrderId     String
+  documentNumber      String
+  receivedAt          DateTime @default(now())
+  receivedById        String
+  warehouseId         String
   supplierDeliveryNote String?
-  notes          String?
-  lines          GoodsReceiptLine[]
-  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
-  warehouse      Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  notes               String?
+  lines               GoodsReceiptLine[]
+  tenant              Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company             Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  purchaseOrder       PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  warehouse           Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@unique([tenantId, documentNumber])
   @@index([tenantId, companyId, receivedAt])
   @@index([tenantId, purchaseOrderId])
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
 }
 
 model GoodsReceiptLine {
