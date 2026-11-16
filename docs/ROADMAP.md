@@ -19,6 +19,7 @@
 
 ## Phase 2 — Shared business capabilities
 - Master data governance
+- Procurement document foundation (requisitions, purchase orders, goods receipts schema)
 - Document service
 - Notification service
 - Workflow and approval engine
@@ -28,7 +29,7 @@
 
 ## Phase 3 — Core ERP
 - Finance and Accounting
-- Procurement
+- Procurement workflows: requisition, approval, purchase order, goods receipt and supplier performance
 - Inventory and Warehouse
 - Sales and Customer Management
 
