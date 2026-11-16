@@ -51,9 +51,13 @@ log "Generating Prisma client and validating schema"
 pnpm db:generate
 pnpm db:validate
 
-log "Applying schema to the configured database"
-log "This uses prisma db push for the initial development schema. It is not a migration history."
-pnpm db:push
+if [[ "${INITIALIZE_DATABASE:-0}" == "1" ]]; then
+  log "Applying initial Prisma schema to the configured empty development database"
+  log "WARNING: prisma db push is not a reviewed migration history; do not use it on an existing production database."
+  pnpm db:push
+else
+  log "Skipping database schema push. Set INITIALIZE_DATABASE=1 only for a new, empty development database."
+fi
 
 log "Creating production build"
 pnpm build
