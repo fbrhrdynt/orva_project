@@ -17,6 +17,8 @@ Create `/opt/orva/apps/web/.env` with a PostgreSQL URL. Keep credentials out of 
 
 ```dotenv
 DATABASE_URL="postgresql://orva_app:REPLACE_WITH_STRONG_PASSWORD@127.0.0.1:5432/orva?schema=public"
+ORVA_BOOTSTRAP_ADMIN_EMAIL="admin@example.com"
+ORVA_BOOTSTRAP_ADMIN_PASSWORD="REPLACE_WITH_A_UNIQUE_PASSWORD_OF_AT_LEAST_12_CHARACTERS"
 ```
 
 Use a dedicated PostgreSQL role with access only to the ORVA database. Never use the postgres superuser for the web application.
@@ -51,12 +53,14 @@ The repository currently uses `prisma db push` for the initial development schem
 
 Before production launch, generate and review a complete baseline migration, replace `db push` with `prisma migrate deploy`, and test backup/restore plus upgrade/rollback procedures.
 
-The demo seed is opt-in and creates the `nusantara-industrial` demo tenant and master data. It does not create an authentication user or enable login:
+The seed is opt-in and creates the `nusantara-industrial` demo tenant, company, suppliers, items, warehouse, and role permissions. When `ORVA_BOOTSTRAP_ADMIN_EMAIL` and `ORVA_BOOTSTRAP_ADMIN_PASSWORD` are set in the app environment, it also provisions the first tenant administrator and company access. The seed does not create sample purchase orders or goods receipts. Run it only after initializing the database:
 
 ```bash
 cd /opt/orva
 pnpm db:seed
 ```
+
+After the first administrator is created, remove the bootstrap password from the environment file and store the credential securely. Login is available at `/login`; the tenant slug for the demo workspace is `nusantara-industrial`.
 
 ## Checks
 
