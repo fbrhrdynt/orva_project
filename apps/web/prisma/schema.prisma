@@ -39,11 +39,11 @@ model Tenant {
   unitsOfMeasure UnitOfMeasure[]
   items Item[]
   warehouses Warehouse[]
-  goodsReceipts GoodsReceipt[]
+
   customers Customer[]
   suppliers Supplier[]
-  purchaseOrders PurchaseOrder[]
-  purchaseRequisitions PurchaseRequisition[]
+
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -93,11 +93,11 @@ model Company {
   units       BusinessUnit[]
   items       Item[]
   warehouses  Warehouse[]
-  goodsReceipts GoodsReceipt[]
+
   customers   Customer[]
   suppliers   Supplier[]
-  purchaseOrders PurchaseOrder[]
-  purchaseRequisitions PurchaseRequisition[]
+
+
   memberships MembershipCompanyAccess[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -449,7 +449,7 @@ model PurchaseOrder {
   rejectedById      String?
   rejectionReason   String?
   lines             PurchaseOrderLine[]
-  goodsReceipts     GoodsReceipt[]
+
   tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   company           Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
   supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
