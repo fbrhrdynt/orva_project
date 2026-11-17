@@ -67,6 +67,22 @@ The data model must distinguish:
 
 Tenant isolation is mandatory. Company-level access must be explicit. Consolidated group reporting must be permission-controlled.
 
+### Company-specific configuration and product variation
+
+A tenant may contain multiple legal entities. Each company is independently configurable while sharing the tenant identity, security boundary, and platform services.
+
+Company-specific capabilities include:
+- Module enablement and module configuration per company.
+- Legal entity profile, tax registration, base currency, locale, time zone, date and number formats.
+- Fiscal year start and week start conventions.
+- Company-specific business units, warehouses, customers, suppliers, items, and operational records.
+- Company-specific custom field definitions in addition to tenant-wide custom fields.
+- Explicit user-to-company access. A user may access one, several, or all companies in a tenant according to assigned grants.
+
+Module enablement is not authorization by itself. Every module endpoint must enforce both the user's permission and the selected company's module entitlement. Tenant-wide entitlements may further restrict which modules a company can enable. Company settings must never allow a user to grant themselves company access or permissions.
+
+The default module configuration is a safe platform baseline. Administrators may enable or disable modules independently for each company without creating separate application forks.
+
 ## 5. Module contract
 
 Every module must define:
