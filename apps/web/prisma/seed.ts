@@ -86,6 +86,9 @@ async function main() {
     });
   }
 
+  await db.companyConfiguration.upsert({ where: { companyId: company.id }, update: {}, create: { companyId: company.id, locale: "id", timezone: "Asia/Jakarta", dateFormat: "dd/MM/yyyy", numberFormat: "1.234,56", fiscalYearStartMonth: 1 } });
+  await db.companyModuleSetting.upsert({ where: { companyId_moduleKey: { companyId: company.id, moduleKey: "procurement" } }, update: { isEnabled: true }, create: { companyId: company.id, moduleKey: "procurement", isEnabled: true } });
+
   const adminEmail = process.env.ORVA_BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.ORVA_BOOTSTRAP_ADMIN_PASSWORD;
   if (adminEmail && adminPassword) {
@@ -138,6 +141,7 @@ async function main() {
       "procurement.purchase_requisition.submit", "procurement.purchase_requisition.approve",
       "procurement.purchase_requisition.reject",
       "platform.custom_fields.create",
+      "company.settings.read", "company.settings.manage",
     ];
     for (const key of permissionKeys) {
       const permission = await db.permission.upsert({
