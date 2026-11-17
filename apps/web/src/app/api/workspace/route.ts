@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
-import { getTenantPlanAccess } from "@/lib/subscription/access";
+import { getTenantPlanAccess, tenantHasSubscription } from "@/lib/subscription/access";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     getTenantPlanAccess(auth.context.tenantId),
   ]);
 
-  const entitled = new Set(entitlements.map((item) => item.moduleKey));
+  const hasSubscription = await tenantHasSubscription(auth.context.tenantId);\n  const entitled = new Set(entitlements.map((item) => item.moduleKey));
   const configured = new Map(moduleSettings.map((item) => [item.moduleKey, item.isEnabled]));
   const enabledModules = ["procurement"].filter((key) =>
     (entitled.size === 0 || entitled.has(key)) && (configured.get(key) ?? true)
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     companies,
     selectedCompanyId: selectedCompanyId ?? null,
     enabledModules,
-    subscription: planAccess ? { plan: planAccess.plan.name, status: planAccess.status, currentPeriodEnd: planAccess.periodEnd, maxUsers: planAccess.plan.maxUsers, maxCompanies: planAccess.plan.maxCompanies, maxStorageMb: planAccess.plan.maxStorageMb, modules: planAccess.moduleKeys } : null,
+    subscription: planAccess ? { plan: planAccess.plan.name, status: planAccess.status, currentPeriodEnd: planAccess.periodEnd, maxUsers: planAccess.plan.maxUsers, maxCompanies: planAccess.plan.maxCompanies, maxStorageMb: planAccess.plan.maxStorageMb, modules: planAccess.moduleKeys } : null,\n    subscriptionRequired: hasSubscription && !planAccess,
     permissions: [...auth.context.permissions],
   }, { headers: { "Cache-Control": "no-store" } });
 }
