@@ -53,18 +53,18 @@ export async function PUT(request: Request) {
     const company = await db.company.findFirst({ where: { id: companyId, tenantId: auth.context.tenantId }, select: { id: true } });
     if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
 
-    const updates: Promise<unknown>[] = [];
+    let companyData: { name?: string; legalName?: string | null; taxId?: string | null; currency?: string } = {};
     if (input.company && typeof input.company === "object" && !Array.isArray(input.company)) {
       const value = input.company as Record<string, unknown>;
-      const data: Record<string, string | null> = {};
-      for (const key of ["name","legalName","taxId","currency"] as const) {
-        if (typeof value[key] === "string") data[key] = value[key].trim();
-      }
-      if (data.name !== undefined && (!data.name || data.name.length > 180)) throw new Error("Company name is required and must be under 180 characters.");
-      if (data.currency !== undefined && !/^[A-Z]{3}$/.test(data.currency.toUpperCase())) throw new Error("Currency must be a three-letter code.");
-      if (data.currency) data.currency = data.currency.toUpperCase();
-      if (Object.keys(data).length) updates.push(db.company.update({ where: { id: companyId }, data }));
+      if (typeof value.name === "string") companyData.name = value.name.trim();
+      if (typeof value.legalName === "string") companyData.legalName = value.legalName.trim() || null;
+      if (typeof value.taxId === "string") companyData.taxId = value.taxId.trim() || null;
+      if (typeof value.currency === "string") companyData.currency = value.currency.trim().toUpperCase();
+      if (companyData.name !== undefined && (!companyData.name || companyData.name.length > 180)) throw new Error("Company name is required and must be under 180 characters.");
+      if (companyData.currency !== undefined && !/^[A-Z]{3}$/.test(companyData.currency)) throw new Error("Currency must be a three-letter code.");
     }
+
+    let configuration: { locale: string; timezone: string; dateFormat: string; numberFormat: string; fiscalYearStartMonth: number; weekStartsOn: number } | undefined;
     if (input.configuration && typeof input.configuration === "object" && !Array.isArray(input.configuration)) {
       const value = input.configuration as Record<string, unknown>;
       const locale = typeof value.locale === "string" ? value.locale : "en";
@@ -73,30 +73,35 @@ export async function PUT(request: Request) {
       const numberFormat = typeof value.numberFormat === "string" ? value.numberFormat : "1.234,56";
       const fiscalYearStartMonth = Number(value.fiscalYearStartMonth ?? 1);
       const weekStartsOn = Number(value.weekStartsOn ?? 1);
-      if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale) || timezone.length > 80 || !/^[w/+-]{1,32}$/.test(timezone) || dateFormat.length > 32 || numberFormat.length > 32 || !Number.isInteger(fiscalYearStartMonth) || fiscalYearStartMonth < 1 || fiscalYearStartMonth > 12 || !Number.isInteger(weekStartsOn) || weekStartsOn < 0 || weekStartsOn > 6) throw new Error("Company localization settings are invalid.");
-      updates.push(db.companyConfiguration.upsert({
-        where: { companyId },
-        update: { locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn },
-        create: { companyId, locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn },
-      }));
+      if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale) || timezone.length > 80 || !/^[\w/+-]{1,32}$/.test(timezone) || dateFormat.length > 32 || numberFormat.length > 32 || !Number.isInteger(fiscalYearStartMonth) || fiscalYearStartMonth < 1 || fiscalYearStartMonth > 12 || !Number.isInteger(weekStartsOn) || weekStartsOn < 0 || weekStartsOn > 6) throw new Error("Company localization settings are invalid.");
+      configuration = { locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn };
     }
+
+    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];
     if (Array.isArray(input.modules)) {
       if (input.modules.length > MODULES.length) throw new Error("Too many module settings.");
       for (const entry of input.modules) {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("Invalid module setting.");
         const item = entry as Record<string, unknown>;
         if (typeof item.key !== "string" || !MODULES.includes(item.key as typeof MODULES[number]) || typeof item.isEnabled !== "boolean") throw new Error("Invalid module key or enabled state.");
-        const key = item.key;
-        const isEnabled = item.isEnabled;
-        updates.push(db.companyModuleSetting.upsert({
-          where: { companyId_moduleKey: { companyId, moduleKey: key } },
-          update: { isEnabled },
-          create: { companyId, moduleKey: key, isEnabled },
-        }));
+        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
       }
     }
-    await db.$transaction(updates);
-    await db.auditEvent.create({ data: { tenantId: auth.context.tenantId, actorUserId: auth.context.userId, action: "company.settings.updated", entityType: "Company", entityId: companyId, metadata: { company: Boolean(input.company), configuration: Boolean(input.configuration), modules: Array.isArray(input.modules) ? input.modules.length : 0 } } });
+
+    await db.$transaction(async (tx) => {
+      if (Object.keys(companyData).length) await tx.company.update({ where: { id: companyId }, data: companyData });
+      if (configuration) await tx.companyConfiguration.upsert({
+        where: { companyId },
+        update: configuration,
+        create: { companyId, ...configuration },
+      });
+      for (const item of moduleUpdates) await tx.companyModuleSetting.upsert({
+        where: { companyId_moduleKey: { companyId, moduleKey: item.key } },
+        update: { isEnabled: item.isEnabled },
+        create: { companyId, moduleKey: item.key, isEnabled: item.isEnabled },
+      });
+      await tx.auditEvent.create({ data: { tenantId: auth.context.tenantId, actorUserId: auth.context.userId, action: "company.settings.updated", entityType: "Company", entityId: companyId, metadata: { company: Boolean(input.company), configuration: Boolean(configuration), modules: moduleUpdates.length } } });
+    });
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return failure(error); }
 }
