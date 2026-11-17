@@ -93,10 +93,19 @@ async function assertCompany(
     select: { id: true },
   });
   if (!company) throw new Error("Company was not found in the active tenant.");
-  const moduleSetting = await client.companyModuleSetting.findUnique({
-    where: { companyId_moduleKey: { companyId, moduleKey: "procurement" } },
-    select: { isEnabled: true },
-  });
+  const [moduleSetting, entitlement] = await Promise.all([
+    client.companyModuleSetting.findUnique({
+      where: { companyId_moduleKey: { companyId, moduleKey: "procurement" } },
+      select: { isEnabled: true },
+    }),
+    client.tenantModuleEntitlement.findUnique({
+      where: { tenantId_moduleKey: { tenantId: context.tenantId, moduleKey: "procurement" } },
+      select: { isIncluded: true },
+    }),
+  ]);
+  if (entitlement && !entitlement.isIncluded) {
+    throw new Error("Procurement is not included in this tenant subscription.");
+  }
   if (moduleSetting && !moduleSetting.isEnabled) {
     throw new Error("Procurement is disabled for this company. Contact your company administrator.");
   }
