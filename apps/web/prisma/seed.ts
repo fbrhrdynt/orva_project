@@ -128,6 +128,25 @@ async function main() {
     create: { tenantId: tenant.id, companyId: servicesCompany.id, code: "WH-SG-01", name: "Singapore Service Depot" },
   });
 
+  const plans = [
+    { key: "STARTER", name: "Starter", description: "For a single small business entity.", maxUsers: 5, maxCompanies: 1, maxStorageMb: 5120, supportLevel: "STANDARD" },
+    { key: "BUSINESS", name: "Business", description: "For growing businesses with multiple teams.", maxUsers: 25, maxCompanies: 5, maxStorageMb: 51200, supportLevel: "PRIORITY" },
+    { key: "PROFESSIONAL", name: "Professional", description: "For multi-entity organizations and advanced operations.", maxUsers: 100, maxCompanies: 20, maxStorageMb: 256000, supportLevel: "PRIORITY" },
+    { key: "ENTERPRISE", name: "Enterprise", description: "For complex groups and dedicated deployments.", maxUsers: null, maxCompanies: null, maxStorageMb: null, supportLevel: "PREMIUM" },
+  ];
+  for (const planData of plans) {
+    const plan = await db.productPlan.upsert({
+      where: { key: planData.key },
+      update: { ...planData, isActive: true },
+      create: { ...planData, isActive: true },
+    });
+    await db.productPlanModule.upsert({
+      where: { planId_moduleKey: { planId: plan.id, moduleKey: "procurement" } },
+      update: {},
+      create: { planId: plan.id, moduleKey: "procurement" },
+    });
+  }
+
   const adminEmail = process.env.ORVA_BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.ORVA_BOOTSTRAP_ADMIN_PASSWORD;
   if (adminEmail && adminPassword) {
