@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     ? requestedCompanyId
     : auth.context.companyIds[0];
 
-  const [companies, user, tenant, moduleSettings, entitlements, planAccess] = await Promise.all([
+  const [companies, user, tenant, moduleSettings, entitlements, planAccess, hasSubscription] = await Promise.all([
     db.company.findMany({
       where: { tenantId: auth.context.tenantId, id: { in: [...auth.context.companyIds] }, isActive: true },
       select: { id: true, code: true, name: true, currency: true },
@@ -25,9 +25,10 @@ export async function GET(request: Request) {
     selectedCompanyId ? db.companyModuleSetting.findMany({ where: { companyId: selectedCompanyId }, select: { moduleKey: true, isEnabled: true } }) : Promise.resolve([]),
     db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } }),
     getTenantPlanAccess(auth.context.tenantId),
+    tenantHasSubscription(auth.context.tenantId),
   ]);
 
-  const hasSubscription = await tenantHasSubscription(auth.context.tenantId);\n  const entitled = new Set(entitlements.map((item) => item.moduleKey));
+  const entitled = new Set(entitlements.map((item) => item.moduleKey));
   const configured = new Map(moduleSettings.map((item) => [item.moduleKey, item.isEnabled]));
   const enabledModules = ["procurement"].filter((key) =>
     (entitled.size === 0 || entitled.has(key)) && (configured.get(key) ?? true)
@@ -39,7 +40,17 @@ export async function GET(request: Request) {
     companies,
     selectedCompanyId: selectedCompanyId ?? null,
     enabledModules,
-    subscription: planAccess ? { plan: planAccess.plan.name, status: planAccess.status, currentPeriodEnd: planAccess.periodEnd, maxUsers: planAccess.plan.maxUsers, maxCompanies: planAccess.plan.maxCompanies, maxStorageMb: planAccess.plan.maxStorageMb, modules: planAccess.moduleKeys } : null,\n    subscriptionRequired: hasSubscription && !planAccess,
+    subscription: planAccess ? {
+      plan: planAccess.plan.name,
+      status: planAccess.status,
+      currentPeriodEnd: planAccess.periodEnd,
+      cancelAtPeriodEnd: planAccess.cancelAtPeriodEnd,
+      maxUsers: planAccess.plan.maxUsers,
+      maxCompanies: planAccess.plan.maxCompanies,
+      maxStorageMb: planAccess.plan.maxStorageMb,
+      modules: planAccess.moduleKeys,
+    } : null,
+    subscriptionRequired: hasSubscription && !planAccess,
     permissions: [...auth.context.permissions],
   }, { headers: { "Cache-Control": "no-store" } });
 }
