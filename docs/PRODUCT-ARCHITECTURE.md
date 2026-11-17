@@ -159,3 +159,43 @@ A subscription grants a limited right to use ORVA during the contracted period. 
 
 ### Commercial price design
 Prices are configured commercially and are not hardcoded in application code. Quotes may combine recurring plan fees, additional seats/entities/storage, implementation, migration, integrations, training, dedicated infrastructure, and premium support. Taxes, currency, billing entity, payment terms and service levels are contractual and jurisdiction-specific.
+
+
+## 9. Commercial decision record — SME hybrid license
+
+**Decision status: approved product direction**
+
+- Primary customer segment: small and medium-sized businesses (SME).
+- Deployment portfolio: hybrid. Shared Cloud is the default low-friction SME offer; Dedicated Cloud and Self-hosted Enterprise are controlled upgrade paths for customers with isolation, residency, or infrastructure-control requirements.
+- Ownership: license. ORVA / LogiSource Digital retains the product, source code, trademarks, and intellectual property. Customers receive a limited contractual right to use the subscribed modules and deployment for the licensed term. No source-code or IP transfer is implied.
+
+### SME packaging principles
+
+- Keep onboarding self-service for Shared Cloud wherever possible.
+- Offer clear limits for users, legal entities, storage, included modules, and support.
+- Avoid hardcoding public prices in application logic. Store commercial prices in a controlled catalogue/quote workflow.
+- Make annual billing an option, not a requirement.
+- Sell implementation, data migration, training, integrations, and dedicated infrastructure separately where applicable.
+- Provide a controlled trial path with explicit expiry and conversion to a paid subscription.
+
+Indicative packaging for commercial validation (not application constants):
+- Starter: 5 users, 1 company, 5 GB.
+- Business: 25 users, 5 companies, 50 GB.
+- Professional: 100 users, 20 companies, 250 GB.
+- Enterprise: negotiated limits and service levels.
+
+### Platform administration boundary
+
+Platform operators are global service personnel and are not tenant members by default. Access is granted through the separate PlatformOperator identity linked to a verified user session. Tenant roles and permissions must never imply platform operator access. Provisioning and subscription changes are restricted to explicit platform roles and must create tenant audit events. Operator enrollment is an out-of-band, controlled administrative operation; there is no public self-registration or tenant-facing endpoint to grant platform roles.
+
+### Provisioning contract
+
+1. Verify the authenticated user session and platform operator role.
+2. Verify the tenant is active and the selected ProductPlan is active.
+3. Create the subscription with server-validated deployment, billing interval, currency, price, and contract period.
+4. Replace the tenant's prior effective subscription in one database transaction.
+5. Derive effective tenant module entitlements from the plan only for TRIAL or ACTIVE subscriptions.
+6. Write an audit event with operator identity, plan, deployment mode, commercial terms, and granted module keys.
+7. Tenant administrators may configure company-level settings only within the effective tenant entitlement.
+
+This initial provisioning endpoint is an internal platform operation. It is not a payment gateway integration, public signup flow, invoice issuance workflow, or infrastructure automation. Those capabilities require separate idempotent workflows and provider-specific security controls.
