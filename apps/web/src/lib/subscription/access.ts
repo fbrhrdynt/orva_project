@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 export type TenantPlanAccess = {
   subscriptionId: string;
   status: "TRIAL" | "ACTIVE";
+  cancelAtPeriodEnd: boolean;
   plan: { key: string; name: string; maxUsers: number | null; maxCompanies: number | null; maxStorageMb: number | null; supportLevel: string };
   periodEnd: Date;
   moduleKeys: string[];
@@ -17,7 +18,6 @@ export async function getTenantPlanAccess(tenantId: string): Promise<TenantPlanA
       startsAt: { lte: now },
       currentPeriodStart: { lte: now },
       currentPeriodEnd: { gt: now },
-      cancelAtPeriodEnd: false,
     },
     orderBy: { createdAt: "desc" },
     include: { plan: { include: { modules: { select: { moduleKey: true } } } } },
@@ -26,6 +26,7 @@ export async function getTenantPlanAccess(tenantId: string): Promise<TenantPlanA
   return {
     subscriptionId: subscription.id,
     status: subscription.status,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     plan: {
       key: subscription.plan.key,
       name: subscription.plan.name,
