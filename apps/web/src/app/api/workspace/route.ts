@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
 import { getTenantPlanAccess, tenantHasSubscription } from "@/lib/subscription/access";
+import { MODULE_REGISTRY } from "@/lib/modules/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,14 @@ export async function GET(request: Request) {
 
   const entitled = new Set(entitlements.map((item) => item.moduleKey));
   const configured = new Map(moduleSettings.map((item) => [item.moduleKey, item.isEnabled]));
-  const enabledModules = ["procurement"].filter((key) =>
-    (entitled.size === 0 || entitled.has(key)) && (configured.get(key) ?? true)
-  );
+  const planModules = new Set(planAccess?.moduleKeys ?? []);
+  const enabledModules = MODULE_REGISTRY
+    .filter((module) => module.status === "AVAILABLE")
+    .filter((module) => planAccess
+      ? planModules.has(module.key)
+      : entitled.size === 0 || entitled.has(module.key))
+    .filter((module) => configured.get(module.key) ?? true)
+    .map((module) => module.key);
 
   return NextResponse.json({
     user,
