@@ -34,6 +34,7 @@ model Tenant {
   companies   Company[]
   roles       Role[]
   moduleEntitlements TenantModuleEntitlement[]
+  subscriptions Subscription[]
   auditEvents AuditEvent[]
   customFields CustomFieldDefinition[]
   itemCategories ItemCategory[]
@@ -142,6 +143,114 @@ model TenantModuleEntitlement {
 
   @@unique([tenantId, moduleKey])
   @@index([tenantId, isIncluded])
+}
+
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum DeploymentMode {
+  SHARED_CLOUD
+  DEDICATED_CLOUD
+  SELF_HOSTED
+}
+
+model ProductPlan {
+  id                String   @id @default(cuid())
+  key               String   @unique
+  name              String
+  description       String?
+  isPublic          Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  maxUsers          Int?
+  maxCompanies      Int?
+  maxStorageMb      Int?
+  supportLevel      String   @default("STANDARD")
+  configuration     Json?
+  modules           ProductPlanModule[]
+  subscriptions     Subscription[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive, isPublic])
+}
+
+model ProductPlanModule {
+  id            String      @id @default(cuid())
+  planId        String
+  moduleKey     String
+  configuration Json?
+  plan          ProductPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([planId, moduleKey])
+  @@index([moduleKey])
+}
+
+model Subscription {
+  id                    String           @id @default(cuid())
+  tenantId              String
+  planId                String
+  status                SubscriptionStatus @default(TRIAL)
+  billingInterval       BillingInterval  @default(MONTHLY)
+  deploymentMode        DeploymentMode   @default(SHARED_CLOUD)
+  currency              String           @default("USD")
+  unitPrice             Decimal          @db.Decimal(20, 2)
+  discountAmount        Decimal          @default(0) @db.Decimal(20, 2)
+  startsAt              DateTime         @default(now())
+  currentPeriodStart    DateTime         @default(now())
+  currentPeriodEnd      DateTime
+  trialEndsAt           DateTime?
+  nextBillingAt         DateTime?
+  cancelledAt           DateTime?
+  cancelAtPeriodEnd     Boolean          @default(false)
+  externalCustomerId    String?
+  externalSubscriptionId String?         @unique
+  contractReference     String?
+  notes                 String?
+  tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  plan                  ProductPlan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices              BillingInvoice[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([tenantId, status])
+  @@index([currentPeriodEnd, status])
+}
+
+model BillingInvoice {
+  id                String   @id @default(cuid())
+  subscriptionId    String
+  invoiceNumber     String   @unique
+  currency          String
+  subtotal          Decimal  @db.Decimal(20, 2)
+  taxAmount         Decimal  @default(0) @db.Decimal(20, 2)
+  totalAmount       Decimal  @db.Decimal(20, 2)
+  status            String   @default("DRAFT")
+  issuedAt          DateTime?
+  dueAt             DateTime?
+  paidAt            DateTime?
+  externalPaymentId String?
+  pdfStorageKey     String?
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([subscriptionId, status])
+  @@index([dueAt, status])
 }
 
 model CompanyConfiguration {
