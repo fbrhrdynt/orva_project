@@ -33,6 +33,7 @@ model Tenant {
   memberships TenantMembership[]
   companies   Company[]
   roles       Role[]
+  moduleEntitlements TenantModuleEntitlement[]
   auditEvents AuditEvent[]
   customFields CustomFieldDefinition[]
   itemCategories ItemCategory[]
@@ -127,6 +128,20 @@ model BusinessUnit {
 
   @@unique([companyId, code])
   @@index([companyId, parentId])
+}
+
+model TenantModuleEntitlement {
+  id        String   @id @default(cuid())
+  tenantId  String
+  moduleKey String
+  isIncluded Boolean @default(false)
+  configuration Json?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, moduleKey])
+  @@index([tenantId, isIncluded])
 }
 
 model CompanyConfiguration {
