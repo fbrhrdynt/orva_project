@@ -520,3 +520,7 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
 .company-module-state { min-width:56px; color:#8792A3; font-size:9px; text-align:right; }
 .company-settings-actions { display:flex; justify-content:flex-end; padding:17px 0 35px; }
 .company-settings-notice { margin:12px 0; padding:10px 12px; border:1px solid #B9E3CE; border-radius:4px; background:#F3FBF6; color:#216E46; font-size:10px; }
+
+.workspace-company-select { max-width:210px; height:32px; padding:0 9px; border:1px solid rgba(255,255,255,.14); border-radius:5px; background:#fff; color:#475467; font:600 10px Manrope,sans-serif; }
+.workspace-company-select:focus { outline:2px solid rgba(66,99,214,.28); outline-offset:1px; }
+@media(max-width:700px) { .workspace-company-select { max-width:130px; } }
