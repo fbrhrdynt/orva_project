@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireCompanyAccess, requirePermission, type VerifiedTenantContext } from "@/lib/tenant/access";
 
@@ -153,9 +154,9 @@ export async function createItem(context: VerifiedTenantContext, input: {
     const category = await db.itemCategory.findFirst({ where: { id: input.categoryId, tenantId: context.tenantId }, select: { id: true } });
     if (!category) throw new Error("Item category was not found in this tenant.");
   }
-  let standardCost: import("@prisma/client").Prisma.Decimal | undefined;
+  let standardCost: Prisma.Decimal | undefined;
   if (input.standardCost !== undefined && input.standardCost !== "") {
-    try { standardCost = new (await import("@prisma/client")).Prisma.Decimal(input.standardCost); }
+    try { standardCost = new Prisma.Decimal(input.standardCost); }
     catch { throw new Error("Standard cost must be a valid number."); }
     if (!standardCost.isFinite() || standardCost.lt(0)) throw new Error("Standard cost cannot be negative.");
   }
