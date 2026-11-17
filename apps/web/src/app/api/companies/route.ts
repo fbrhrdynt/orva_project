@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
 import { requirePermission } from "@/lib/tenant/access";
+import { checkTenantResourceLimit, getTenantPlanAccess } from "@/lib/subscription/access";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
     if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Currency must be a three-letter ISO code.");
     if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale) || timezone.length > 80 || !/^[\w/+-]{1,32}$/.test(timezone)) throw new Error("Locale or time zone is invalid.");
 
+    const planAccess = await getTenantPlanAccess(auth.context.tenantId);
+    if (planAccess) {
+      const limit = await checkTenantResourceLimit(auth.context.tenantId, "companies");
+      if (!limit.allowed) return NextResponse.json({ error: limit.reason }, { status: 409 });
+    }
     const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });
     const created = await db.$transaction(async (tx) => {
       const company = await tx.company.create({
