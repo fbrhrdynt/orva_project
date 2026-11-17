@@ -143,7 +143,7 @@ export default function ProcurementPage() {
       <section className="procurement-content">
         <Link href="/" className="procurement-back"><ArrowLeft size={14}/> Applications</Link><nav className="procurement-subnav"><Link href="/procurement">Purchase orders</Link><Link href="/procurement/requisitions">Purchase requisitions</Link><Link href="/procurement/receipts">Goods receipts</Link><Link href="/master-data">Master data</Link></nav>
         <div className="procurement-heading">
-          <div><div className="procurement-eyebrow">CORE BUSINESS / PROCUREMENT</div><h1>Purchase orders</h1><p>Monitor purchasing commitments and supplier deliveries.</p></div>
+          <div><div className="procurement-eyebrow">CORE BUSINESS / PROCUREMENT</div><h1>Purchase orders</h1><p>Monitor purchasing commitments and supplier deliveries.</p></div><Link href="/procurement/new" className="procurement-primary">+ New purchase order</Link>
           {workspace && workspace.companies.length > 0 && <label className="procurement-company-select"><Building2 size={14}/><select value={companyId} onChange={(event) => { setCompanyId(event.target.value); setSelected(null); }} aria-label="Select company">{workspace.companies.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>}
         </div>
 
