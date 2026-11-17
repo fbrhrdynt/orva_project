@@ -452,3 +452,30 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
 .orva-login-footer { padding:18px; color:#98A2B3; font-size:9px; text-align:center; }
 .orva-login-footer span { padding:0 4px; color:#C4CAD3; }
 @media(max-width:520px) { .orva-login-header { height:58px; padding:0 18px; } .orva-login-header > span { font-size:7px; } .orva-login-card { padding:26px 21px; } }
+
+
+/* Live procurement workspace */
+.procurement-topbar-right { display:flex; align-items:center; gap:16px; }
+.procurement-user { color:#697586; font-size:10px; }
+.procurement-logout { padding:7px 10px; border:1px solid var(--border); border-radius:4px; background:#fff; color:#596579; font-size:10px; }
+.procurement-logout:hover { border-color:#C9D2E0; color:var(--orva-navy); }
+.procurement-company-select { min-width:230px; max-width:360px; height:36px; display:flex; align-items:center; gap:8px; padding:0 10px; border:1px solid #E1E5EC; border-radius:4px; color:#8993A2; background:#fff; }
+.procurement-company-select select { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#475467; font-size:10px; }
+.procurement-refresh { height:36px; display:flex; align-items:center; gap:7px; padding:0 11px; border:1px solid #E1E5EC; border-radius:4px; background:#fff; color:#596579; font-size:10px; }
+.procurement-refresh:disabled { opacity:.6; cursor:wait; }
+.procurement-state { min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; border:1px solid var(--border); border-radius:6px; background:#fff; color:#8993A2; font-size:11px; text-align:center; padding:24px; }
+.procurement-state strong { color:#344054; font-size:13px; }
+.procurement-state span { max-width:420px; line-height:1.7; }
+.procurement-spin { animation:orva-spin 1s linear infinite; }
+@keyframes orva-spin { to { transform:rotate(360deg); } }
+.procurement-error { margin:0 20px 13px; padding:10px 12px; border:1px solid #F3D5D5; border-radius:4px; background:#FFF8F7; color:#B33A35; font-size:10px; }
+.po-status-rejected { background:#FCEDEC; color:#A33E39; }
+.po-supplier { color:#475467; font-size:10px; font-weight:600; }
+@media(max-width:760px) {
+ .procurement-topbar-right { gap:8px; }
+ .procurement-environment { display:none; }
+ .procurement-user { max-width:105px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .procurement-heading { align-items:flex-start; flex-direction:column; }
+ .procurement-company-select { width:100%; max-width:none; }
+ .procurement-refresh { margin-left:auto; }
+}
