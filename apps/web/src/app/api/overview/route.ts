@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     since.setDate(1);
     since.setHours(0, 0, 0, 0);
     const base = { tenantId: auth.context.tenantId, companyId };
+    const companyOrderIds = await db.purchaseOrder.findMany({ where: base, select: { id: true } });
     const [purchaseOrders, requisitions, receipts, suppliers, customers, items, warehouses, recentOrders, activity] = await Promise.all([
       db.purchaseOrder.groupBy({ by: ["status"], where: base, _count: { _all: true }, _sum: { grandTotal: true } }),
       db.purchaseRequisition.groupBy({ by: ["status"], where: base, _count: { _all: true } }),
@@ -42,14 +43,14 @@ export async function GET(request: Request) {
         select: { id: true, documentNumber: true, documentDate: true, status: true, currency: true, grandTotal: true, supplier: { select: { name: true } } },
       }),
       db.auditEvent.findMany({
-        where: { tenantId: auth.context.tenantId, occurredAt: { gte: since }, OR: [{ entityId: { in: await db.purchaseOrder.findMany({ where: base, select: { id: true } }).then(rows => rows.map(row => row.id)) } }, { action: { startsWith: "company." } }] },
+        where: { tenantId: auth.context.tenantId, occurredAt: { gte: since }, entityId: { in: companyOrderIds.map(row => row.id) } },
         orderBy: { occurredAt: "desc" },
         take: 8,
         select: { id: true, action: true, entityType: true, entityId: true, severity: true, occurredAt: true, actorUserId: true },
       }),
     ]);
 
-    const count = (statuses: typeof purchaseOrders, keys: string[]) => statuses.filter(row => keys.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
+    const count = (statuses: Array<{ status: string; _count: { _all: number } }>, keys: string[]) => statuses.filter(row => keys.includes(row.status)).reduce((sum, row) => sum + row._count._all, 0);
     const total = purchaseOrders.reduce((sum, row) => sum + Number(row._sum.grandTotal ?? 0), 0);
     const submittedValue = purchaseOrders.filter(row => row.status === "SUBMITTED").reduce((sum, row) => sum + Number(row._sum.grandTotal ?? 0), 0);
     return NextResponse.json({
