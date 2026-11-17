@@ -199,3 +199,33 @@ Platform operators are global service personnel and are not tenant members by de
 7. Tenant administrators may configure company-level settings only within the effective tenant entitlement.
 
 This initial provisioning endpoint is an internal platform operation. It is not a payment gateway integration, public signup flow, invoice issuance workflow, or infrastructure automation. Those capabilities require separate idempotent workflows and provider-specific security controls.
+
+
+## 10. SME and small-CV product strategy
+
+The primary market is Indonesian micro, small and medium businesses (UMKM), including owner-operated businesses and small CV legal entities. ORVA must optimize for a small team with limited IT capacity and straightforward business processes.
+
+### Product experience
+- Shared Cloud is the default deployment and onboarding path.
+- Setup should ask only for business name, legal form, business identity, currency, fiscal year, first administrator, and the modules needed now.
+- Use Indonesian language, IDR, Asia/Jakarta, and Indonesian date/number formats as the default for Indonesian customers, while retaining localization settings.
+- Keep navigation role-aware and show only licensed and enabled modules.
+- Prefer guided workflows, sensible defaults, searchable master data, clear document statuses, and simple approval steps.
+- Avoid enterprise-only concepts in the default SME experience. Advanced controls remain available to authorized users when needed.
+
+### Initial commercial packages
+- Starter: owner-operated or micro business, one legal entity and up to five users.
+- Business: small CV or growing UMKM, up to five legal entities and 25 users.
+- Professional: larger SME with multiple teams, up to 20 legal entities and 100 users.
+- Dedicated Cloud and Self-hosted are exceptional upgrade paths, not the default offer for small customers.
+
+Package limits are configurable catalogue data and must be enforced server-side. Prices remain quote/catalogue configuration, never code constants. Module availability reflects implemented production capability; a module must not be marketed as available merely because it appears in the product roadmap.
+
+### SME onboarding
+1. Register customer business and first administrator through a verified onboarding flow.
+2. Create the tenant and its first legal entity (CV/PT/individual business as appropriate).
+3. Assign a trial or paid subscription through trusted platform services.
+4. Provision company defaults and initial company access.
+5. Enable only the included, implemented modules.
+6. Import opening master data with validation and duplicate checks.
+7. Guide the owner through the first real transaction.
