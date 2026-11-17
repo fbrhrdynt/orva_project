@@ -65,6 +65,7 @@ model User {
 
   @@index([status])
   sessions Session[]
+  platformOperator PlatformOperator?
 }
 
 model TenantMembership {
@@ -723,4 +724,25 @@ model AuthThrottle {
   windowStartedAt DateTime @default(now())
   blockedUntil    DateTime?
   updatedAt       DateTime @updatedAt
+}
+
+
+enum PlatformOperatorRole {
+  OWNER
+  ADMIN
+  BILLING
+  SUPPORT
+  PROVISIONING
+}
+
+model PlatformOperator {
+  id        String               @id @default(cuid())
+  userId    String               @unique
+  role      PlatformOperatorRole @default(SUPPORT)
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([role, isActive])
 }
