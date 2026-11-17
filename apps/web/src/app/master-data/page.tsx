@@ -1,39 +1,24 @@
 "use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowLeft, Search } from "lucide-react";
-import { DEMO_WORKSPACE, formatIDR } from "@/lib/demo-data";
+import { FormEvent,useCallback,useEffect,useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft,Plus,Search } from "lucide-react";
 
-type Tab = "Customers" | "Suppliers" | "Items" | "Warehouses";
-type MasterRow = { code?: string; sku?: string; name?: string; city?: string; terms?: string; creditLimit?: number; category?: string; uom?: string; unitCost?: number; unit?: string };
-export default function MasterDataPage() {
-  const [tab, setTab] = useState<Tab>("Customers");
-  const [query, setQuery] = useState("");
-  const rows = useMemo(() => {
-    const source: readonly MasterRow[] = tab === "Customers" ? DEMO_WORKSPACE.customers : tab === "Suppliers" ? DEMO_WORKSPACE.suppliers : tab === "Items" ? DEMO_WORKSPACE.items : DEMO_WORKSPACE.warehouses;
-    const term = query.trim().toLowerCase();
-    return source.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(term)));
-  }, [tab, query]);
-  const columns = tab === "Customers" ? ["Code", "Customer", "City", "Payment terms", "Credit limit"] : tab === "Suppliers" ? ["Code", "Supplier", "Category", "City"] : tab === "Items" ? ["SKU", "Item", "Category", "UOM", "Standard cost"] : ["Code", "Warehouse", "Business unit"];
-  return <main className="master-page">
-    <header className="master-top"><Link href="/overview"><ArrowLeft size={15}/> Overview</Link><span>orva<span className="master-dot">.</span></span><small>DEMO ENVIRONMENT</small></header>
-    <section className="master-content">
-      <div className="master-breadcrumb">Workspace / Master data</div>
-      <div className="master-heading"><div><h1>Master data</h1><p>Reference records used across business transactions</p></div><span>DEMO DATA</span></div>
-      <div className="master-company"><strong>Nusantara Industrial Group</strong><span> · Consolidated demo workspace</span></div>
-      <div className="master-tabs" role="tablist" aria-label="Master data type">{(["Customers","Suppliers","Items","Warehouses"] as Tab[]).map((name) => <button type="button" role="tab" aria-selected={tab === name} className={tab === name ? "selected" : ""} onClick={() => {setTab(name);setQuery("");}} key={name}>{name}<span>{name === "Customers" ? DEMO_WORKSPACE.customers.length : name === "Suppliers" ? DEMO_WORKSPACE.suppliers.length : name === "Items" ? DEMO_WORKSPACE.items.length : DEMO_WORKSPACE.warehouses.length}</span></button>)}</div>
-      <div className="master-toolbar"><label><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${tab.toLowerCase()}...`} aria-label={`Search ${tab}`}/></label><span>{rows.length} records</span></div>
-      <div className="master-table-wrap"><table className="master-table"><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
-        {rows.map((row, index) => <tr key={index}>
-          {tab === "Customers" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.city}</td><td>{row.terms}</td><td className="master-number">{formatIDR(row.creditLimit ?? 0)}</td></>}
-          {tab === "Suppliers" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.category}</td><td>{row.city}</td></>}
-          {tab === "Items" && <><td className="master-code">{row.sku}</td><td>{row.name}</td><td>{row.category}</td><td>{row.uom}</td><td className="master-number">{formatIDR(row.unitCost ?? 0)}</td></>}
-          {tab === "Warehouses" && <><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.unit}</td></>}
-        </tr>)}
-        {rows.length === 0 && <tr><td colSpan={columns.length} className="master-empty">No matching records</td></tr>}
-      </tbody></table></div>
-      <p className="master-footnote">Sample records only. Create, edit and import actions will be enabled after authentication and database provisioning are connected.</p>
-    </section>
-  </main>;
+type Tab="Customers"|"Suppliers"|"Items"|"Warehouses";
+type Company={id:string;code:string;name:string};
+type Row={id:string;code?:string;sku?:string;name:string;city?:string|null;country?:string;email?:string|null;phone?:string|null;currency?:string;paymentTermDays?:number;category?:{name:string}|null;uom?:{code:string}|null;standardCost?:string|null;address?:string|null;businessUnitId?:string|null;isActive:boolean};
+const typeFor:Record<Tab,string>={Customers:"customers",Suppliers:"suppliers",Items:"items",Warehouses:"warehouses"};
+export default function MasterDataPage(){
+ const router=useRouter();const [tab,setTab]=useState<Tab>("Customers");const [query,setQuery]=useState("");const [companies,setCompanies]=useState<Company[]>([]);const [companyId,setCompanyId]=useState("");const [rows,setRows]=useState<Row[]>([]);const [total,setTotal]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [creating,setCreating]=useState(false);const [code,setCode]=useState("");const [name,setName]=useState("");const [city,setCity]=useState("");const [email,setEmail]=useState("");const [phone,setPhone]=useState("");
+ useEffect(()=>{let active=true;fetch("/api/workspace",{cache:"no-store"}).then(async r=>{if(r.status===401){router.replace("/login");return null;}const d=await r.json();if(!r.ok)throw new Error(d.error);return d;}).then(d=>{if(active&&d){setCompanies(d.companies??[]);setCompanyId(d.companies?.[0]?.id??"");}}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[router]);
+ const load=useCallback(async()=>{if(!companyId)return;setLoading(true);try{const p=new URLSearchParams({type:typeFor[tab],companyId});if(query.trim())p.set("search",query.trim());const r=await fetch("/api/master-data?"+p.toString(),{cache:"no-store"});const d=await r.json();if(r.status===401){router.replace("/login");return;}if(!r.ok)throw new Error(d.error);setRows(d.items??[]);setTotal(d.total??0);setError("");}catch(e){setError(e instanceof Error?e.message:"Unable to load master data");setRows([]);setTotal(0);}finally{setLoading(false);}},[companyId,tab,query,router]);
+ useEffect(()=>{void load();},[load]);
+ async function create(event:FormEvent){event.preventDefault();try{const r=await fetch("/api/master-data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:typeFor[tab],companyId,code,name,city,email,phone})});const d=await r.json();if(!r.ok)throw new Error(d.error);setCreating(false);setCode("");setName("");setCity("");setEmail("");setPhone("");await load();}catch(e){setError(e instanceof Error?e.message:"Unable to create record");}}
+ const canCreate=tab==="Customers"||tab==="Suppliers";
+ return <main className="master-page"><header className="master-top"><Link href="/overview"><ArrowLeft size={15}/> Overview</Link><span>orva<span className="master-dot">.</span></span><small>LIVE WORKSPACE</small></header><section className="master-content"><div className="master-breadcrumb">Workspace / Master data</div><div className="master-heading"><div><h1>Master data</h1><p>Reference records used across business transactions</p></div>{canCreate&&<button className="procurement-primary" onClick={()=>setCreating(!creating)}><Plus size={14}/> New {tab.slice(0,-1).toLowerCase()}</button>}</div>
+ <label className="procurement-company-select"><select value={companyId} onChange={e=>setCompanyId(e.target.value)}>{companies.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
+ <div className="master-tabs" role="tablist" aria-label="Master data type">{(["Customers","Suppliers","Items","Warehouses"] as Tab[]).map(t=><button type="button" role="tab" aria-selected={tab===t} className={tab===t?"selected":""} onClick={()=>{setTab(t);setQuery("");setCreating(false);}} key={t}>{t}</button>)}</div>
+ {creating&&<form className="procurement-form" onSubmit={create}><div className="procurement-form-head"><strong>New {tab.slice(0,-1).toLowerCase()}</strong><span>Saved to the active company</span></div><div className="procurement-form-grid"><label>Code<input required value={code} onChange={e=>setCode(e.target.value)} placeholder={tab==="Customers"?"CUS-0001":"SUP-0001"}/></label><label>Name<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Legal or trading name"/></label><label>City<input value={city} onChange={e=>setCity(e.target.value)}/></label><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Phone<input value={phone} onChange={e=>setPhone(e.target.value)}/></label></div><div className="procurement-form-actions"><button type="button" className="procurement-secondary" onClick={()=>setCreating(false)}>Cancel</button><button type="submit" className="procurement-primary">Save record</button></div></form>}
+ <div className="master-toolbar"><label><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={"Search "+tab.toLowerCase()+"..."} aria-label={"Search "+tab}/></label><span>{total} records</span></div>{error&&<div className="procurement-error" role="alert">{error}</div>}
+ <div className="master-table-wrap"><table className="master-table"><thead><tr>{tab==="Customers"||tab==="Suppliers"?<><th>Code</th><th>Name</th><th>City</th><th>Email</th><th>Currency</th><th>Terms</th><th>Status</th></>:tab==="Items"?<><th>SKU</th><th>Item</th><th>Category</th><th>UOM</th><th>Standard cost</th><th>Status</th></>:<><th>Code</th><th>Warehouse</th><th>Address</th><th>Status</th></>}</tr></thead><tbody>{rows.map(row=><tr key={row.id}>{tab==="Customers"||tab==="Suppliers"?<><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.city||"—"}</td><td>{row.email||"—"}</td><td>{row.currency||"IDR"}</td><td>{row.paymentTermDays??30} days</td><td>{row.isActive?"Active":"Inactive"}</td></>:tab==="Items"?<><td className="master-code">{row.sku}</td><td>{row.name}</td><td>{row.category?.name||"—"}</td><td>{row.uom?.code||"—"}</td><td>{row.standardCost?new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(row.standardCost)):"—"}</td><td>{row.isActive?"Active":"Inactive"}</td></>:<><td className="master-code">{row.code}</td><td>{row.name}</td><td>{row.address||"—"}</td><td>{row.isActive?"Active":"Inactive"}</td></>}</tr>)}{!loading&&rows.length===0&&<tr><td colSpan={tab==="Customers"||tab==="Suppliers"?7:tab==="Items"?6:4} className="master-empty">No records found for this company.</td></tr>}{loading&&<tr><td colSpan={7} className="master-empty">Loading records...</td></tr>}</tbody></table></div><p className="master-footnote">Live tenant database · Access is restricted by company membership and master-data permissions.</p></section></main>;
 }
