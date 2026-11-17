@@ -16,6 +16,23 @@ async function main() {
     create: { tenantId: tenant.id, code: "NIG", name: "Nusantara Industrial Group", currency: "IDR" },
   });
 
+  const servicesCompany = await db.company.upsert({
+    where: { tenantId_code: { tenantId: tenant.id, code: "NSE" } },
+    update: { name: "PT Nusantara Services", currency: "USD" },
+    create: { tenantId: tenant.id, code: "NSE", name: "PT Nusantara Services", legalName: "PT Nusantara Services", currency: "USD" },
+  });
+
+  await db.businessUnit.upsert({
+    where: { companyId_code: { companyId: company.id, code: "HQ" } },
+    update: { name: "Head Office", unitType: "HEAD_OFFICE" },
+    create: { companyId: company.id, code: "HQ", name: "Head Office", unitType: "HEAD_OFFICE" },
+  });
+  await db.businessUnit.upsert({
+    where: { companyId_code: { companyId: servicesCompany.id, code: "OPS" } },
+    update: { name: "Service Operations", unitType: "OPERATIONS" },
+    create: { companyId: servicesCompany.id, code: "OPS", name: "Service Operations", unitType: "OPERATIONS" },
+  });
+
   const categories = [
     { code: "RAW", name: "Raw materials" },
     { code: "MRO", name: "Maintenance, repair and operations" },
@@ -90,6 +107,27 @@ async function main() {
   await db.companyConfiguration.upsert({ where: { companyId: company.id }, update: {}, create: { companyId: company.id, locale: "id", timezone: "Asia/Jakarta", dateFormat: "dd/MM/yyyy", numberFormat: "1.234,56", fiscalYearStartMonth: 1 } });
   await db.companyModuleSetting.upsert({ where: { companyId_moduleKey: { companyId: company.id, moduleKey: "procurement" } }, update: { isEnabled: true }, create: { companyId: company.id, moduleKey: "procurement", isEnabled: true } });
 
+  await db.companyConfiguration.upsert({
+    where: { companyId: servicesCompany.id },
+    update: {},
+    create: { companyId: servicesCompany.id, locale: "en", timezone: "Asia/Singapore", dateFormat: "yyyy-MM-dd", numberFormat: "1,234.56", fiscalYearStartMonth: 4 },
+  });
+  await db.companyModuleSetting.upsert({
+    where: { companyId_moduleKey: { companyId: servicesCompany.id, moduleKey: "procurement" } },
+    update: { isEnabled: false },
+    create: { companyId: servicesCompany.id, moduleKey: "procurement", isEnabled: false },
+  });
+  await db.supplier.upsert({
+    where: { companyId_code: { companyId: servicesCompany.id, code: "SUP-SG-001" } },
+    update: { name: "Nusantara Technical Services Pte Ltd" },
+    create: { tenantId: tenant.id, companyId: servicesCompany.id, code: "SUP-SG-001", name: "Nusantara Technical Services Pte Ltd", city: "Singapore", country: "Singapore", currency: "USD" },
+  });
+  await db.warehouse.upsert({
+    where: { companyId_code: { companyId: servicesCompany.id, code: "WH-SG-01" } },
+    update: { name: "Singapore Service Depot" },
+    create: { tenantId: tenant.id, companyId: servicesCompany.id, code: "WH-SG-01", name: "Singapore Service Depot" },
+  });
+
   const adminEmail = process.env.ORVA_BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.ORVA_BOOTSTRAP_ADMIN_PASSWORD;
   if (adminEmail && adminPassword) {
@@ -125,6 +163,11 @@ async function main() {
       where: { membershipId_companyId: { membershipId: membership.id, companyId: company.id } },
       update: {},
       create: { membershipId: membership.id, companyId: company.id },
+    });
+    await db.membershipCompanyAccess.upsert({
+      where: { membershipId_companyId: { membershipId: membership.id, companyId: servicesCompany.id } },
+      update: {},
+      create: { membershipId: membership.id, companyId: servicesCompany.id },
     });
     const role = await db.role.upsert({
       where: { tenantId_key: { tenantId: tenant.id, key: "TENANT_ADMIN" } },
