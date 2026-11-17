@@ -51,3 +51,7 @@ export async function checkTenantResourceLimit(tenantId: string, resource: "user
     ? { allowed: false, reason: `Your ${access.plan.name} plan allows up to ${limit} ${resource}.`, access }
     : { allowed: true, access, count, limit };
 }
+
+export async function tenantHasSubscription(tenantId: string): Promise<boolean> {
+  return (await db.subscription.count({ where: { tenantId } })) > 0;
+}
