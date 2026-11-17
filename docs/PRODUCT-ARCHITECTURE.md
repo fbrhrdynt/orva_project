@@ -128,3 +128,34 @@ Vercel is a deployment platform, not the entire backend architecture. Long-runni
 ## 8. Explicit exclusions
 
 LS_AMT, LS_Inventory, TimesheetStudio, and LogiShell are not source modules in this repository. Any future integration must use a reviewed interface and explicit authorization.
+
+
+## Commercial product and licensing model
+
+ORVA is a licensed ERP product. The default commercial offer is a recurring subscription; perpetual use is a negotiated enterprise option, not an automatic transfer of source code or intellectual property.
+
+### Offerings
+- **Shared Cloud:** multi-tenant SaaS operated by ORVA. Subscription includes platform hosting, standard updates, backups, and support level defined by contract.
+- **Dedicated Cloud:** isolated customer deployment and database, with recurring hosting/operations fees plus implementation.
+- **Self-hosted Enterprise:** customer-operated infrastructure under a perpetual or term license. The contract defines permitted entities, users, modules, environments, update rights, support, audit rights, and termination obligations.
+
+### Commercial separation
+- ProductPlan is the sellable package catalogue and defines user, company, storage, support and module limits.
+- ProductPlanModule defines modules included in each plan.
+- Subscription records the tenant's contracted plan, deployment mode, billing interval, price, contract dates, renewal and payment-provider references.
+- BillingInvoice records invoice lifecycle and payment reconciliation references.
+- TenantModuleEntitlement is the effective tenant-level feature grant; it must be synchronized from the active subscription by trusted billing/platform services, never directly by tenant administrators.
+- CompanyModuleSetting allows each legal entity to disable included modules locally. It cannot grant a module absent from the tenant entitlement.
+- Company configuration remains independent from subscription commercial terms.
+
+### Subscription lifecycle
+Trial -> Active -> Past due -> Suspended or Active after settlement. Cancellation can take effect immediately or at period end. Expired or suspended subscriptions must be blocked by server-side entitlement checks, with a controlled read-only/grace policy defined by contract. Billing webhooks must be signature-verified and idempotent. Never trust browser-submitted prices, plan IDs, payment status, or entitlement changes.
+
+### Limits and metering
+Enforce user, company and storage limits on the server at the operation that creates the resource or consumes storage. Show usage and limit to tenant administrators. Platform operators may override limits only with an audited action and documented reason.
+
+### License and IP policy
+A subscription grants a limited right to use ORVA during the contracted period. It does not transfer ownership of the ORVA source code, brand, or intellectual property. Self-hosted licensing requires signed license claims, offline verification policy, deployment identity, expiry/grace behavior, and a documented renewal process. Do not implement a client-editable or plaintext license key as the security boundary.
+
+### Commercial price design
+Prices are configured commercially and are not hardcoded in application code. Quotes may combine recurring plan fees, additional seats/entities/storage, implementation, migration, integrations, training, dedicated infrastructure, and premium support. Taxes, currency, billing entity, payment terms and service levels are contractual and jurisdiction-specific.
