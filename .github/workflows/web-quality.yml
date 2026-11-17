@@ -2,7 +2,7 @@ name: ORVA Web Quality
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/procurement-workspace]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: 22.23.4
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
         run: pnpm db:generate
       - name: Validate database schema
