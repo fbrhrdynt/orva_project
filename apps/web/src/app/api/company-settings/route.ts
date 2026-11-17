@@ -25,9 +25,11 @@ export async function GET(request: Request) {
     });
     if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
     const saved = new Map(company.moduleSettings.map((item) => [item.moduleKey, item]));
+    const entitled = new Set(company.tenant.moduleEntitlements.filter((item) => item.isIncluded).map((item) => item.moduleKey));
     const modules = MODULES.map((key) => {
       const setting = saved.get(key);
-      return { key, isEnabled: setting?.isEnabled ?? DEFAULT_ENABLED.has(key), configuration: setting?.configuration ?? null };
+      const available = entitled.has(key) || (!company.tenant.moduleEntitlements.length && DEFAULT_ENABLED.has(key));
+      return { key, available, isEnabled: available && (setting?.isEnabled ?? DEFAULT_ENABLED.has(key)), configuration: setting?.configuration ?? null };
     });
     return NextResponse.json({
       company: { id: company.id, code: company.code, name: company.name, legalName: company.legalName, taxId: company.taxId, currency: company.currency },
@@ -77,14 +79,18 @@ export async function PUT(request: Request) {
       configuration = { locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn };
     }
 
-    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];\n    const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });\n    const entitledKeys = new Set(entitlements.map((item) => item.moduleKey));\n    if (entitlements.length === 0) entitledKeys.add("procurement");
+    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];
+    const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });
+    const entitledKeys = new Set(entitlements.map((item) => item.moduleKey));
+    if (entitlements.length === 0) entitledKeys.add("procurement");
     if (Array.isArray(input.modules)) {
       if (input.modules.length > MODULES.length) throw new Error("Too many module settings.");
       for (const entry of input.modules) {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("Invalid module setting.");
         const item = entry as Record<string, unknown>;
         if (typeof item.key !== "string" || !MODULES.includes(item.key as typeof MODULES[number]) || typeof item.isEnabled !== "boolean") throw new Error("Invalid module key or enabled state.");
-        if (item.isEnabled && !entitledKeys.has(item.key)) throw new Error("This module is not included in the tenant subscription: " + item.key);\n        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
+        if (item.isEnabled && !entitledKeys.has(item.key)) throw new Error("This module is not included in the tenant subscription: " + item.key);
+        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
       }
     }
 
