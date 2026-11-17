@@ -1,68 +1,73 @@
 # ORVA VPS Deployment
 
-Target: Ubuntu VPS, repository `/opt/orva`, systemd service `orva`, Next.js port `3200`, Nginx reverse proxy, domain `orva.febro.id`.
+**Target:** Ubuntu VPS, repository `/opt/orva`, systemd service `orva`, Next.js on `127.0.0.1:3200`, Nginx reverse proxy, domain `orva.febro.id`.
 
-## One-time prerequisites
+This is the supported deployment path. GitHub Actions runs quality checks only; it does not deploy the application. Vercel is not used as the production host.
 
-- Node.js 22.x
-- pnpm 10.8.0
-- PostgreSQL 15 or newer, with an empty ORVA application database
-- GitHub deploy key configured for this repository
-- Nginx and Certbot configured separately
-- systemd service `orva.service` configured to run Next.js on `127.0.0.1:3200`
+## Requirements
+
+- Ubuntu 22.04/24.04 or compatible
+- Node.js 22.x and pnpm 10.8.0
+- PostgreSQL 15+
+- Git access to `fbrhrdynt/orva_project`
+- Nginx and Certbot
+- systemd service `orva.service`
+- Application user `ubuntu`
 
 ## Environment
 
-Create `/opt/orva/apps/web/.env` with a PostgreSQL URL. Keep credentials out of Git:
+Create `/opt/orva/apps/web/.env` and protect it with mode 0600:
 
 ```dotenv
 DATABASE_URL="postgresql://orva_app:REPLACE_WITH_STRONG_PASSWORD@127.0.0.1:5432/orva?schema=public"
 ORVA_BOOTSTRAP_ADMIN_EMAIL="admin@example.com"
-ORVA_BOOTSTRAP_ADMIN_PASSWORD="REPLACE_WITH_A_UNIQUE_PASSWORD_OF_AT_LEAST_12_CHARACTERS"
+ORVA_BOOTSTRAP_ADMIN_PASSWORD="REPLACE_WITH_A_UNIQUE_PASSWORD"
 ```
 
-Use a dedicated PostgreSQL role with access only to the ORVA database. Never use the postgres superuser for the web application.
+Use a dedicated PostgreSQL role. Do not use the postgres superuser for the web application. Remove the bootstrap password after creating the first administrator.
 
-## Initial deploy / update
+## Deploy an approved branch
 
-Run as the `ubuntu` application user. The script fetches the selected branch (default `main`), installs dependencies, validates/generates Prisma, builds Next.js, restarts systemd, and checks the health endpoint. It skips database schema synchronization unless explicitly requested.
+Run as the `ubuntu` application user, not root:
 
 ```bash
 cd /opt/orva
 chmod +x scripts/deploy-vps.sh
-./scripts/deploy-vps.sh
-```
-
-For the first setup only, after confirming the target database is empty, initialize its schema explicitly:
-
-```bash
-INITIALIZE_DATABASE=1 ./scripts/deploy-vps.sh
-```
-
-Routine application updates do not push schema changes. To deploy a feature branch for preview:
-
-```bash
 DEPLOY_BRANCH=feature/procurement-workspace ./scripts/deploy-vps.sh
 ```
 
-The script stores a timestamped copy of the environment file (mode 0600) and the previous Git commit under `/home/ubuntu/codex/backups/orva/`. It refuses to deploy over uncommitted tracked changes.
+The script fetches the selected branch, refuses tracked local changes, backs up the environment and previous commit, installs dependencies, generates/validates Prisma, builds Next.js, restarts systemd, and checks the local health endpoint.
 
-## Database safety
+For the default production branch after changes are reviewed and merged:
 
-The repository currently uses `prisma db push` for the initial development schema because the complete platform baseline migration has not yet been generated. This synchronizes the database schema directly and does not create a reviewed migration history. Use only with a newly created, empty development database. Do not use this command to update an existing production database with business data.
+```bash
+cd /opt/orva
+DEPLOY_BRANCH=main ./scripts/deploy-vps.sh
+```
 
-Before production launch, generate and review a complete baseline migration, replace `db push` with `prisma migrate deploy`, and test backup/restore plus upgrade/rollback procedures.
+## Database safety — read before first deployment
 
-The seed is opt-in and creates the `nusantara-industrial` demo tenant, company, suppliers, items, warehouse, and role permissions. When `ORVA_BOOTSTRAP_ADMIN_EMAIL` and `ORVA_BOOTSTRAP_ADMIN_PASSWORD` are set in the app environment, it also provisions the first tenant administrator and company access. The seed does not create sample purchase orders or goods receipts. Run it only after initializing the database:
+The current codebase does not yet have a reviewed Prisma baseline migration. The deployment script therefore skips schema synchronization by default.
+
+**Do not run `prisma db push` on a database that contains production/business data.** For a brand-new, empty development database only, schema initialization can be performed after verifying the database target and taking a backup:
+
+```bash
+cd /opt/orva
+pnpm db:push
+```
+
+Before production launch, create and review a baseline migration, switch deployment to `prisma migrate deploy`, and test backup/restore plus upgrade/rollback procedures. Do not use the initial schema-push flow as a production migration strategy.
+
+## Seed data
+
+The seed is opt-in and creates sample/demo tenant data. It is not a customer onboarding workflow. Run only in a development/demo environment:
 
 ```bash
 cd /opt/orva
 pnpm db:seed
 ```
 
-After the first administrator is created, remove the bootstrap password from the environment file and store the credential securely. Login is available at `/login`; the tenant slug for the demo workspace is `nusantara-industrial`.
-
-## Checks
+## Health checks
 
 ```bash
 curl -fsS http://127.0.0.1:3200/api/health
@@ -71,8 +76,8 @@ sudo nginx -t
 curl -I https://orva.febro.id
 ```
 
-A successful local health check does not prove that DNS, TLS, or external network filtering permits access. Confirm each separately.
+A local health check does not prove DNS, TLS, or external network reachability. Verify each separately.
 
 ## Rollback
 
-The deployment script records the previous commit SHA but does not automatically roll back database schema changes. To roll back application code, inspect the previous SHA in the latest backup directory, check it out in a controlled maintenance window, rebuild, and restart the service. Database rollback requires a tested database backup/restore; do not assume Git rollback reverses database changes.
+The deploy script stores the previous commit SHA and a protected environment backup under `/home/ubuntu/codex/backups/orva/`. Review the recorded SHA before checking it out. Rebuild and restart the service during a maintenance window. Git rollback does not reverse database changes; database rollback requires a tested backup/restore procedure.
