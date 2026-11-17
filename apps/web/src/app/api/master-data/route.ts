@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
-import { listCustomers, listSuppliers, listItems, listWarehouses, createCustomer, createSupplier } from "@/lib/master-data/service";
+import { listCustomers, listSuppliers, listItems, listWarehouses, createCustomer, createSupplier, createItem, createWarehouse } from "@/lib/master-data/service";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,18 @@ export async function POST(request: Request) {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Invalid master data payload." }, { status: 400 });
     const input = body as Record<string, unknown>;
-    if (typeof input.companyId !== "string" || typeof input.code !== "string" || typeof input.name !== "string") {
+    if (typeof input.companyId !== "string") return NextResponse.json({ error: "Company is required." }, { status: 400 });
+    if (input.type === "items") {
+      if (typeof input.sku !== "string" || typeof input.name !== "string" || typeof input.uomId !== "string" || typeof input.itemType !== "string") return NextResponse.json({ error: "SKU, name, unit of measure and item type are required." }, { status: 400 });
+      const result = await createItem(auth.context, { companyId: input.companyId, sku: input.sku, name: input.name, uomId: input.uomId, categoryId: typeof input.categoryId === "string" ? input.categoryId : undefined, description: typeof input.description === "string" ? input.description : undefined, itemType: input.itemType, standardCost: typeof input.standardCost === "string" || typeof input.standardCost === "number" ? input.standardCost : undefined, isStockItem: typeof input.isStockItem === "boolean" ? input.isStockItem : undefined, isPurchase: typeof input.isPurchase === "boolean" ? input.isPurchase : undefined, isSales: typeof input.isSales === "boolean" ? input.isSales : undefined });
+      return NextResponse.json(result, { status: 201, headers: { "Cache-Control": "no-store" } });
+    }
+    if (input.type === "warehouses") {
+      if (typeof input.code !== "string" || typeof input.name !== "string") return NextResponse.json({ error: "Warehouse code and name are required." }, { status: 400 });
+      const result = await createWarehouse(auth.context, { companyId: input.companyId, code: input.code, name: input.name, address: typeof input.address === "string" ? input.address : undefined });
+      return NextResponse.json(result, { status: 201, headers: { "Cache-Control": "no-store" } });
+    }
+    if (typeof input.code !== "string" || typeof input.name !== "string") {
       return NextResponse.json({ error: "Company, code and name are required." }, { status: 400 });
     }
     const data = {
@@ -53,7 +64,7 @@ export async function POST(request: Request) {
     const result = input.type === "customers" ? await createCustomer(auth.context, data)
       : input.type === "suppliers" ? await createSupplier(auth.context, data)
       : null;
-    if (!result) return NextResponse.json({ error: "Only customer and supplier creation is currently supported." }, { status: 400 });
+    if (!result) return NextResponse.json({ error: "Unsupported master data creation type." }, { status: 400 });
     return NextResponse.json(result, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 400;
