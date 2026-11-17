@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";\nimport { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PLATFORM_VERSION } from "@/lib/version";
 import {
@@ -38,13 +38,13 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("All applications");
   const [menuOpen, setMenuOpen] = useState(false);
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = query.trim().toLowerCase();\n\n  useEffect(() => {\n    let active = true;\n    fetch("/api/workspace", { cache: "no-store" }).then(async (response) => {\n      if (response.status === 401) { router.replace("/login"); return null; }\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.error || "Unable to load workspace.");\n      return data;\n    }).then((data) => { if (active && data) { setCompanies(data.companies ?? []); setCompanyId(data.selectedCompanyId ?? data.companies?.[0]?.id ?? ""); setEnabledModules(data.enabledModules ?? []); } }).catch(() => { if (active) setEnabledModules([]); });\n    return () => { active = false; };\n  }, [router]);\n\n  async function changeCompany(nextCompanyId: string) {\n    setCompanyId(nextCompanyId);\n    try { const response = await fetch("/api/workspace?companyId=" + encodeURIComponent(nextCompanyId), { cache: "no-store" }); const data = await response.json(); if (response.ok) setEnabledModules(data.enabledModules ?? []); } catch { setEnabledModules([]); }\n  }
 
   const filtered = useMemo(() => applications.filter((app) => {
     const matchesQuery = !normalizedQuery || [app.name, app.description, app.group].some((value) => value.toLowerCase().includes(normalizedQuery));
     const matchesGroup = groupFilter === "All applications" || app.group === groupFilter;
     return matchesQuery && matchesGroup;
-  }), [normalizedQuery, groupFilter]);
+  }), [normalizedQuery, groupFilter, enabledModules]);
 
   const visibleGroups = groups.map((group) => ({
     ...group,
@@ -92,7 +92,7 @@ export default function Home() {
             <div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>Applications</strong></div>
           </div>
           <div className="topbar-actions">
-            <span className="environment"><span className="environment-dot"/>Development</span>
+            <span className="environment"><span className="environment-dot"/>Workspace</span>\n            {companies.length > 1 && <select className="workspace-company-select" value={companyId} onChange={(event) => void changeCompany(event.target.value)} aria-label="Switch company">{companies.map((company) => <option key={company.id} value={company.id}>{company.code} · {company.name}</option>)}</select>}
             <div className="topbar-divider"/>
             <button className="icon-button" aria-label="Security information" title="Security information"><ShieldCheck size={17}/></button>
             <button className="icon-button command-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts"><Command size={17}/></button>
