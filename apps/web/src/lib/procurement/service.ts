@@ -93,6 +93,13 @@ async function assertCompany(
     select: { id: true },
   });
   if (!company) throw new Error("Company was not found in the active tenant.");
+  const moduleSetting = await client.companyModuleSetting.findUnique({
+    where: { companyId_moduleKey: { companyId, moduleKey: "procurement" } },
+    select: { isEnabled: true },
+  });
+  if (moduleSetting && !moduleSetting.isEnabled) {
+    throw new Error("Procurement is disabled for this company. Contact your company administrator.");
+  }
 }
 
 
