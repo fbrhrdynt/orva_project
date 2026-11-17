@@ -98,6 +98,9 @@ model Company {
   customers   Customer[]
   suppliers   Supplier[]
   memberships MembershipCompanyAccess[]
+  configuration CompanyConfiguration?
+  moduleSettings CompanyModuleSetting[]
+  companyCustomFields CompanyCustomFieldDefinition[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -124,6 +127,53 @@ model BusinessUnit {
 
   @@unique([companyId, code])
   @@index([companyId, parentId])
+}
+
+model CompanyConfiguration {
+  id                  String   @id @default(cuid())
+  companyId           String   @unique
+  locale              String   @default("en")
+  timezone            String   @default("Asia/Jakarta")
+  dateFormat          String   @default("dd/MM/yyyy")
+  numberFormat        String   @default("1.234,56")
+  fiscalYearStartMonth Int     @default(1)
+  weekStartsOn        Int      @default(1)
+  settings            Json?
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model CompanyModuleSetting {
+  id            String   @id @default(cuid())
+  companyId     String
+  moduleKey     String
+  isEnabled     Boolean  @default(false)
+  configuration Json?
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([companyId, moduleKey])
+  @@index([companyId, isEnabled])
+}
+
+model CompanyCustomFieldDefinition {
+  id            String   @id @default(cuid())
+  companyId     String
+  entityKey     String
+  fieldKey      String
+  label         String
+  dataType      String
+  isRequired    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  configuration Json?
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([companyId, entityKey, fieldKey])
+  @@index([companyId, entityKey, isActive])
 }
 
 model MembershipCompanyAccess {
