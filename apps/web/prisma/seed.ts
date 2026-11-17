@@ -133,7 +133,7 @@ async function main() {
       "master-data.item.read", "master-data.warehouse.read",
       "procurement.purchase_order.read", "procurement.purchase_order.create",
       "procurement.purchase_order.submit", "procurement.purchase_order.approve",
-      "procurement.purchase_order.reject", "procurement.goods_receipt.create",
+      "procurement.purchase_order.reject", "procurement.goods_receipt.read", "procurement.goods_receipt.create",
       "procurement.purchase_requisition.read", "procurement.purchase_requisition.create",
       "procurement.purchase_requisition.submit", "procurement.purchase_requisition.approve",
       "procurement.purchase_requisition.reject",
