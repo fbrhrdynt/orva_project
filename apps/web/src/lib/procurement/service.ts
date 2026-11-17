@@ -472,7 +472,7 @@ export async function createGoodsReceipt(context: VerifiedTenantContext, input: 
 
     const orderLines = await tx.purchaseOrderLine.findMany({
       where: { id: { in: ids }, purchaseOrderId: order.id },
-      select: { id: true, quantity: true, receivedQty: true },
+      select: { id: true, quantity: true, receivedQty: true, item: { select: { id: true, isStockItem: true } } },
     });
     if (orderLines.length !== ids.length) throw new Error("One or more receipt lines do not belong to the selected purchase order.");
 
@@ -506,6 +506,18 @@ export async function createGoodsReceipt(context: VerifiedTenantContext, input: 
     });
 
     for (let i = 0; i < ids.length; i += 1) {
+      const receivedLine = orderLines.find((line) => line.id === ids[i]);
+      if (receivedLine?.item?.isStockItem) {
+        await tx.stockLedgerEntry.create({
+          data: {
+            tenantId: context.tenantId, companyId: input.companyId, itemId: receivedLine.item.id,
+            warehouseId: warehouse.id, movementType: "RECEIPT", quantity: quantities[i],
+            referenceType: "GOODS_RECEIPT", referenceId: created.id,
+            idempotencyKey: `goods-receipt:${created.id}:${ids[i]}`, actorUserId: context.userId,
+            notes: input.notes?.trim() || undefined,
+          },
+        });
+      }
       await tx.purchaseOrderLine.update({
         where: { id: ids[i] },
         data: { receivedQty: { increment: quantities[i] } },
