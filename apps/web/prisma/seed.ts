@@ -196,7 +196,7 @@ async function main() {
     const permissionKeys = [
       "master-data.customer.read", "master-data.customer.create",
       "master-data.supplier.read", "master-data.supplier.create",
-      "master-data.item.read", "master-data.warehouse.read",
+      "master-data.item.read", "master-data.item.create", "master-data.warehouse.read", "master-data.warehouse.create",
       "procurement.purchase_order.read", "procurement.purchase_order.create",
       "procurement.purchase_order.submit", "procurement.purchase_order.approve",
       "procurement.purchase_order.reject", "procurement.goods_receipt.read", "procurement.goods_receipt.create",
