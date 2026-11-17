@@ -86,6 +86,7 @@ async function main() {
     });
   }
 
+  await db.tenantModuleEntitlement.upsert({ where: { tenantId_moduleKey: { tenantId: tenant.id, moduleKey: "procurement" } }, update: { isIncluded: true }, create: { tenantId: tenant.id, moduleKey: "procurement", isIncluded: true } });
   await db.companyConfiguration.upsert({ where: { companyId: company.id }, update: {}, create: { companyId: company.id, locale: "id", timezone: "Asia/Jakarta", dateFormat: "dd/MM/yyyy", numberFormat: "1.234,56", fiscalYearStartMonth: 1 } });
   await db.companyModuleSetting.upsert({ where: { companyId_moduleKey: { companyId: company.id, moduleKey: "procurement" } }, update: { isEnabled: true }, create: { companyId: company.id, moduleKey: "procurement", isEnabled: true } });
 
