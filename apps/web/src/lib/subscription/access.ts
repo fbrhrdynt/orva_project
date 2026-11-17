@@ -25,7 +25,7 @@ export async function getTenantPlanAccess(tenantId: string): Promise<TenantPlanA
   if (!subscription) return null;
   return {
     subscriptionId: subscription.id,
-    status: subscription.status,
+    status: subscription.status === "TRIAL" ? "TRIAL" : "ACTIVE",
     cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     plan: {
       key: subscription.plan.key,
