@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     requireCompanyAccess(auth.context, companyId);
     const company = await db.company.findFirst({
       where: { id: companyId, tenantId: auth.context.tenantId },
-      include: { configuration: true, moduleSettings: { orderBy: { moduleKey: "asc" } }, units: { where: { isActive: true }, orderBy: { name: "asc" } } },
+      include: { configuration: true, moduleSettings: { orderBy: { moduleKey: "asc" } }, tenant: { include: { moduleEntitlements: true } }, units: { where: { isActive: true }, orderBy: { name: "asc" } } },
     });
     if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
     const saved = new Map(company.moduleSettings.map((item) => [item.moduleKey, item]));
@@ -77,14 +77,14 @@ export async function PUT(request: Request) {
       configuration = { locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn };
     }
 
-    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];
+    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];\n    const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });\n    const entitledKeys = new Set(entitlements.map((item) => item.moduleKey));\n    if (entitlements.length === 0) entitledKeys.add("procurement");
     if (Array.isArray(input.modules)) {
       if (input.modules.length > MODULES.length) throw new Error("Too many module settings.");
       for (const entry of input.modules) {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("Invalid module setting.");
         const item = entry as Record<string, unknown>;
         if (typeof item.key !== "string" || !MODULES.includes(item.key as typeof MODULES[number]) || typeof item.isEnabled !== "boolean") throw new Error("Invalid module key or enabled state.");
-        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
+        if (item.isEnabled && !entitledKeys.has(item.key)) throw new Error("This module is not included in the tenant subscription: " + item.key);\n        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
       }
     }
 
