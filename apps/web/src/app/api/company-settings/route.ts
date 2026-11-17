@@ -53,7 +53,7 @@ export async function PUT(request: Request) {
     const company = await db.company.findFirst({ where: { id: companyId, tenantId: auth.context.tenantId }, select: { id: true } });
     if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
 
-    let companyData: { name?: string; legalName?: string | null; taxId?: string | null; currency?: string } = {};
+    const companyData: { name?: string; legalName?: string | null; taxId?: string | null; currency?: string } = {};
     if (input.company && typeof input.company === "object" && !Array.isArray(input.company)) {
       const value = input.company as Record<string, unknown>;
       if (typeof value.name === "string") companyData.name = value.name.trim();
