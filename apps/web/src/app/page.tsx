@@ -72,6 +72,7 @@ export default function Home() {
         </nav>
 
         <div className="sidebar-bottom">
+          <Link className="nav-item" href="/company-settings"><Settings2 size={17}/><span>Company configuration</span></Link>
           <a className="nav-item" href="#preferences"><Settings2 size={17}/><span>Preferences</span></a>
           <a className="nav-item" href="#help"><CircleHelp size={17}/><span>Help & support</span></a>
           <div className="profile">
