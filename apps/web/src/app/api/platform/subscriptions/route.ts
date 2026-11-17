@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     if (currentPeriodEnd <= now) return fail("Subscription period end must be in the future.");
 
     const result = await db.$transaction(async (tx) => {
+      await tx.subscription.updateMany({
+        where: { tenantId, status: { in: ["TRIAL", "ACTIVE", "PAST_DUE", "SUSPENDED"] } },
+        data: { status: "CANCELLED", cancelledAt: now, cancelAtPeriodEnd: false }
+      });
       const subscription = await tx.subscription.create({
         data: {
           tenantId, planId, status: status as "TRIAL" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELLED" | "EXPIRED",
