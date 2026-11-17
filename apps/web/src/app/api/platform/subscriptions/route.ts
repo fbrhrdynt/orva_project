@@ -5,6 +5,9 @@ import { getPlatformOperator } from "@/lib/platform/access";
 export const dynamic = "force-dynamic";
 const ROLES = ["OWNER", "ADMIN", "BILLING", "PROVISIONING"] as const;
 const ACTIVE_STATUSES = new Set(["TRIAL", "ACTIVE"]);
+const DEPLOYMENT_MODES = ["SHARED_CLOUD", "DEDICATED_CLOUD", "SELF_HOSTED"] as const;
+const BILLING_INTERVALS = ["MONTHLY", "QUARTERLY", "YEARLY", "CUSTOM"] as const;
+const SUBSCRIPTION_STATUSES = ["TRIAL", "ACTIVE", "PAST_DUE", "SUSPENDED", "CANCELLED", "EXPIRED"] as const;
 
 function fail(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
@@ -16,8 +19,7 @@ export async function GET() {
 
   const [tenants, plans] = await Promise.all([
     db.tenant.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      orderBy: { createdAt: "desc" }, take: 100,
       select: {
         id: true, name: true, slug: true, status: true, createdAt: true,
         _count: { select: { memberships: true, companies: true } },
@@ -28,8 +30,7 @@ export async function GET() {
       }
     }),
     db.productPlan.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
+      where: { isActive: true }, orderBy: { name: "asc" },
       select: { id: true, key: true, name: true, maxUsers: true, maxCompanies: true, maxStorageMb: true, supportLevel: true, modules: { select: { moduleKey: true } } }
     })
   ]);
@@ -51,16 +52,21 @@ export async function POST(request: Request) {
     const data = input as Record<string, unknown>;
     const tenantId = typeof data.tenantId === "string" ? data.tenantId : "";
     const planId = typeof data.planId === "string" ? data.planId : "";
-    const deploymentMode = data.deploymentMode;
-    const billingInterval = data.billingInterval;
+    const deploymentValue = typeof data.deploymentMode === "string" ? data.deploymentMode : "";
+    const billingValue = typeof data.billingInterval === "string" ? data.billingInterval : "";
+    const statusValue = typeof data.status === "string" ? data.status : "";
     const currency = typeof data.currency === "string" ? data.currency.toUpperCase() : "IDR";
     const unitPrice = typeof data.unitPrice === "number" ? data.unitPrice : Number.NaN;
     const currentPeriodEnd = typeof data.currentPeriodEnd === "string" ? new Date(data.currentPeriodEnd) : new Date(Number.NaN);
-    const status = data.status;
-    if (!tenantId || !planId || !["SHARED_CLOUD", "DEDICATED_CLOUD", "SELF_HOSTED"].includes(String(deploymentMode))) return fail("Tenant, plan and deployment mode are required.");
-    if (!["MONTHLY", "QUARTERLY", "YEARLY", "CUSTOM"].includes(String(billingInterval))) return fail("Invalid billing interval.");
-    if (!["TRIAL", "ACTIVE", "PAST_DUE", "SUSPENDED", "CANCELLED", "EXPIRED"].includes(String(status))) return fail("Invalid subscription status.");
+
+    if (!tenantId || !planId || !DEPLOYMENT_MODES.some((value) => value === deploymentValue)) return fail("Tenant, plan and deployment mode are required.");
+    if (!BILLING_INTERVALS.some((value) => value === billingValue)) return fail("Invalid billing interval.");
+    if (!SUBSCRIPTION_STATUSES.some((value) => value === statusValue)) return fail("Invalid subscription status.");
     if (!/^[A-Z]{3}$/.test(currency) || !Number.isFinite(unitPrice) || unitPrice < 0 || Number.isNaN(currentPeriodEnd.getTime())) return fail("Invalid currency, price or period end.");
+
+    const deploymentMode = deploymentValue as typeof DEPLOYMENT_MODES[number];
+    const billingInterval = billingValue as typeof BILLING_INTERVALS[number];
+    const status = statusValue as typeof SUBSCRIPTION_STATUSES[number];
 
     const [tenant, plan] = await Promise.all([
       db.tenant.findUnique({ where: { id: tenantId }, select: { id: true, status: true } }),
@@ -78,15 +84,13 @@ export async function POST(request: Request) {
       });
       const subscription = await tx.subscription.create({
         data: {
-          tenantId, planId, status: status as "TRIAL" | "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "CANCELLED" | "EXPIRED",
-          deploymentMode: deploymentMode as "SHARED_CLOUD" | "DEDICATED_CLOUD" | "SELF_HOSTED",
-          billingInterval: billingInterval as "MONTHLY" | "QUARTERLY" | "YEARLY" | "CUSTOM",
+          tenantId, planId, status, deploymentMode, billingInterval,
           currency, unitPrice, startsAt: now, currentPeriodStart: now, currentPeriodEnd,
           trialEndsAt: status === "TRIAL" ? currentPeriodEnd : null
         },
         select: { id: true, tenantId: true, planId: true, status: true, deploymentMode: true, currentPeriodEnd: true }
       });
-      const moduleKeys = ACTIVE_STATUSES.has(String(status)) ? plan.modules.map((module) => module.moduleKey) : [];
+      const moduleKeys = ACTIVE_STATUSES.has(status) ? plan.modules.map((module) => module.moduleKey) : [];
       await tx.tenantModuleEntitlement.deleteMany({ where: { tenantId } });
       if (moduleKeys.length) await tx.tenantModuleEntitlement.createMany({
         data: moduleKeys.map((moduleKey) => ({ tenantId, moduleKey, isIncluded: true }))
