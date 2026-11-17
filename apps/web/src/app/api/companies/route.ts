@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Currency must be a three-letter ISO code.");
     if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale) || timezone.length > 80 || !/^[\w/+-]{1,32}$/.test(timezone)) throw new Error("Locale or time zone is invalid.");
 
+    const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });
     const created = await db.$transaction(async (tx) => {
       const company = await tx.company.create({
         data: {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       });
       await tx.membershipCompanyAccess.create({ data: { membershipId: auth.context.membershipId, companyId: company.id } });
       await tx.companyConfiguration.create({ data: { companyId: company.id, locale, timezone, dateFormat: locale === "id" ? "dd/MM/yyyy" : "yyyy-MM-dd", numberFormat: locale === "id" ? "1.234,56" : "1,234.56", fiscalYearStartMonth: 1 } });
+      if (entitlements.length) await tx.companyModuleSetting.createMany({ data: entitlements.map((item) => ({ companyId: company.id, moduleKey: item.moduleKey, isEnabled: false })) });
       await tx.auditEvent.create({ data: { tenantId: auth.context.tenantId, actorUserId: auth.context.userId, action: "company.created", entityType: "Company", entityId: company.id, metadata: { code, name, currency } } });
       return company;
     });
