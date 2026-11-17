@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
+import { getTenantPlanAccess } from "@/lib/subscription/access";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
     ? requestedCompanyId
     : auth.context.companyIds[0];
 
-  const [companies, user, tenant, moduleSettings, entitlements] = await Promise.all([
+  const [companies, user, tenant, moduleSettings, entitlements, planAccess] = await Promise.all([
     db.company.findMany({
       where: { tenantId: auth.context.tenantId, id: { in: [...auth.context.companyIds] }, isActive: true },
       select: { id: true, code: true, name: true, currency: true },
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
     db.tenant.findUnique({ where: { id: auth.context.tenantId }, select: { id: true, name: true, slug: true } }),
     selectedCompanyId ? db.companyModuleSetting.findMany({ where: { companyId: selectedCompanyId }, select: { moduleKey: true, isEnabled: true } }) : Promise.resolve([]),
     db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } }),
+    getTenantPlanAccess(auth.context.tenantId),
   ]);
 
   const entitled = new Set(entitlements.map((item) => item.moduleKey));
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
     companies,
     selectedCompanyId: selectedCompanyId ?? null,
     enabledModules,
+    subscription: planAccess ? { plan: planAccess.plan.name, status: planAccess.status, currentPeriodEnd: planAccess.periodEnd, maxUsers: planAccess.plan.maxUsers, maxCompanies: planAccess.plan.maxCompanies, maxStorageMb: planAccess.plan.maxStorageMb, modules: planAccess.moduleKeys } : null,
     permissions: [...auth.context.permissions],
   }, { headers: { "Cache-Control": "no-store" } });
 }
