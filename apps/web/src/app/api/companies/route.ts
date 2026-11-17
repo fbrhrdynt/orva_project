@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getVerifiedTenantContext } from "@/lib/auth/session";
 import { requirePermission } from "@/lib/tenant/access";
-import { checkTenantResourceLimit, getTenantPlanAccess } from "@/lib/subscription/access";
+import { checkTenantResourceLimit, getTenantPlanAccess, tenantHasSubscription } from "@/lib/subscription/access";
 
 export const dynamic = "force-dynamic";
 
