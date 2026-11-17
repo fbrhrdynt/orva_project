@@ -34,8 +34,7 @@ export async function listStockBalances(context: VerifiedTenantContext, companyI
   });
   const itemMap = new Map(items.map(x => [x.id, x]));
   const warehouseMap = new Map(warehouses.map(x => [x.id, x]));
-  return { items: balances.map(row => ({ item: itemMap.get(row.itemId), warehouse: warehouseMap.get(row.warehouseId), quantity: row._sum.quantity?.toString() ?? "0" }))
-    .filter(row => row.item && row.warehouse), warehouses, itemCount: items.length };
+  return { balances: balances.map(row => ({ item: itemMap.get(row.itemId), warehouse: warehouseMap.get(row.warehouseId), quantity: row._sum.quantity?.toString() ?? "0" })).filter(row => row.item && row.warehouse), items, warehouses, itemCount: items.length };
 }
 
 type MovementInput = { companyId: string; itemId: string; warehouseId: string; quantity: string | number; movementType: "ADJUSTMENT_IN" | "ADJUSTMENT_OUT"; unitCost?: string | number; notes?: string; idempotencyKey?: string };
