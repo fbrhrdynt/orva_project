@@ -479,3 +479,21 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
  .procurement-company-select { width:100%; max-width:none; }
  .procurement-refresh { margin-left:auto; }
 }
+
+/* Procurement workflow */
+.procurement-primary { min-height:36px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 13px; border:1px solid #3454C4; border-radius:4px; background:#4263D6; color:#fff; font-size:10px; font-weight:650; }
+.procurement-primary:hover { background:#3454C4; }
+.procurement-secondary { min-height:36px; padding:0 13px; border:1px solid #E1E5EC; border-radius:4px; background:#fff; color:#596579; font-size:10px; }
+.procurement-form { margin:16px 0 20px; padding:19px; border:1px solid var(--border); border-radius:6px; background:#fff; }
+.procurement-form-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:17px; }
+.procurement-form-head strong { color:#293548; font-size:12px; }
+.procurement-form-head span { color:#98A2B3; font-size:9px; }
+.procurement-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+.procurement-form-grid label { display:grid; gap:6px; color:#596579; font-size:10px; font-weight:600; }
+.procurement-form-grid .wide { grid-column:1/-1; }
+.procurement-form-grid input { width:100%; height:36px; padding:0 10px; border:1px solid #E1E5EC; border-radius:4px; outline:0; background:#fff; color:#344054; font-size:10px; }
+.procurement-form-grid input:focus { border-color:#8EA2E5; box-shadow:0 0 0 3px rgba(66,99,214,.09); }
+.procurement-form-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:17px; padding-top:14px; border-top:1px solid #EDF0F4; }
+.procurement-inline-action { display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border:1px solid #DCE3F2; border-radius:4px; background:#F7F9FE; color:#4263D6; font-size:9px; font-weight:650; }
+.procurement-inline-action:hover { background:#EEF2FC; }
+@media(max-width:600px) { .procurement-form-grid { grid-template-columns:1fr; } .procurement-form-grid .wide { grid-column:auto; } .procurement-form-head { align-items:flex-start; flex-direction:column; } }
