@@ -624,3 +624,36 @@ body:has(.orva-global-sidebar) .erp-content { max-width:1440px; margin:0 auto; }
   .orva-global-drawer .orva-global-label { margin-top:20px; }
   body:has(.orva-global-sidebar) .procurement-content { padding-left:16px; padding-right:16px; }
 }
+
+
+/* ORVA Brand Guidelines v1.0 — canonical tokens and component governance */
+:root {
+  --orva-navy:#1A2334; --orva-white:#FFFFFF; --orva-ink:#111827;
+  --orva-page:#F8FAFC; --orva-surface:#FFFFFF; --orva-subtle:#EEF2F7;
+  --orva-border:#E2E8F0; --orva-muted:#667085; --orva-accent:#4263D6;
+  --orva-accent-light:#EEF2FF; --orva-success:#167A54;
+  --orva-warning:#9A5B00; --orva-danger:#C53B42;
+  --orva-font:"Manrope","Inter",system-ui,sans-serif;
+  --orva-radius-button:10px; --orva-radius-card:12px;
+  --canvas:var(--orva-page); --surface:var(--orva-surface);
+  --text-primary:var(--orva-ink); --text-secondary:var(--orva-muted);
+  --text-muted:var(--orva-muted); --border:var(--orva-border);
+  --focus:rgba(66,99,214,.22);
+}
+body{font-family:var(--orva-font);background:var(--orva-page);color:var(--orva-ink)}
+.wordmark span,.orva-global-brand span{color:var(--orva-accent)}
+.nav-item.active,.orva-global-link.is-active{background:var(--orva-accent-light);color:var(--orva-navy)}
+.nav-item.active svg,.orva-global-link.is-active svg{color:var(--orva-accent)}
+.orva-global-mark{background:var(--orva-navy);color:#fff}
+.orva-global-link:hover{background:var(--orva-subtle);color:var(--orva-navy)}
+/* Menu and module identity stay neutral; semantic colors are reserved for status/data visualization. */
+.application-item--tone-0 .application-icon,.application-item--tone-1 .application-icon,
+.application-item--tone-2 .application-icon,.application-item--tone-3 .application-icon,
+.application-item--tone-4 .application-icon,.application-item--tone-5 .application-icon,
+.application-item--planned .application-icon{background:var(--orva-subtle);color:var(--orva-navy);border-color:var(--orva-border)}
+.application-section--0 .section-count,.application-section--1 .section-count,
+.application-section--2 .section-count,.application-section--3 .section-count{color:var(--orva-muted)}
+.workspace-welcome{background:var(--orva-surface);border:1px solid var(--orva-border)}
+.workspace-welcome .welcome-kicker,.welcome-stat strong{color:var(--orva-navy)}
+.application-status.is-available{color:var(--orva-success);background:#EFF8F3;border-color:#D7EBDD}
+.application-status.is-planned{color:var(--orva-muted);background:var(--orva-subtle);border-color:var(--orva-border)}
