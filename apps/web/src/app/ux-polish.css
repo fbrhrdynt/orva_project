@@ -350,3 +350,48 @@ body:has(.orva-global-sidebar) .erp-content { max-width:1480px;padding:34px 38px
  .panel-head { padding:14px; }
  .erp-footer { flex-direction:column;gap:6px; }
 }
+
+
+/* Global workspace profile and responsive drawer */
+.orva-global-sidebar { overflow-y:auto;overscroll-behavior:contain; }
+.orva-global-sidebar-bottom { margin-top:auto; }
+.orva-global-help { display:flex;align-items:center;gap:9px;min-height:37px;padding:0 10px;color:#8795AB;font-size:10px;text-decoration:none;border-radius:8px; }
+.orva-global-help:hover { background:rgba(255,255,255,.06);color:#E7ECF5; }
+.orva-global-profile { display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 8px;border:1px solid rgba(255,255,255,.10);border-radius:11px;background:rgba(255,255,255,.045); }
+.orva-global-avatar { display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:10px;background:linear-gradient(145deg,#6684E6,#3E5FC8);color:#fff;font-size:10px;font-weight:850; }
+.orva-global-profile-copy { display:grid;gap:3px;min-width:0;flex:1; }
+.orva-global-profile-copy strong { overflow:hidden;color:#EEF2FA;font-size:10px;text-overflow:ellipsis;white-space:nowrap; }
+.orva-global-profile-copy small { overflow:hidden;color:#8290A8;font-size:9px;text-overflow:ellipsis;white-space:nowrap; }
+.orva-global-profile>svg { color:#7D8CA5; }
+.orva-global-sidebar-bottom .orva-global-foot { margin-top:12px; }
+.orva-global-drawer .orva-global-sidebar-bottom { margin-top:auto; }
+.orva-global-drawer .orva-global-profile { border-color:rgba(255,255,255,.12); }
+.orva-global-drawer .orva-global-help { color:#A5B1C4; }
+@media(max-width:760px) {
+ .orva-global-drawer { overflow-y:auto; }
+ .orva-global-drawer .orva-global-sidebar-bottom { margin-top:auto;padding-top:20px; }
+}
+@media(max-width:900px) {
+ .orva-login-layout { grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);gap:36px; }
+ .orva-login-story h1 { font-size:48px; }
+}
+@media(max-width:700px) {
+ .orva-login-page { padding:22px 16px 18px; }
+ .orva-login-header { padding:0 3px; }
+ .orva-login-header-note { font-size:8px;letter-spacing:.8px; }
+ .orva-login-layout { min-height:auto;grid-template-columns:minmax(0,1fr);gap:22px;margin:34px auto 28px; }
+ .orva-login-story { padding:8px 3px 0; }
+ .orva-login-story h1 { margin:17px 0 10px;font-size:38px;letter-spacing:-2px; }
+ .orva-login-story>p { max-width:540px;font-size:12px;line-height:1.65; }
+ .orva-login-feature-list { display:none; }
+ .orva-login-story-footer { display:none; }
+ .orva-login-card { max-width:none;justify-self:stretch;padding:23px 20px;border-radius:16px; }
+ .orva-login-card-top { margin-bottom:22px; }
+ .orva-login-card h2 { font-size:25px; }
+ .orva-login-form { gap:15px;margin-top:22px; }
+ .orva-login-form input { height:47px; }
+ .orva-login-footer { flex-wrap:wrap;justify-content:center;font-size:9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ *,*::before,*::after { scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important; }
+}
