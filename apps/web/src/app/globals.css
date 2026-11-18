@@ -579,3 +579,48 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
   .workspace-welcome {align-items:flex-start;padding:16px;flex-direction:column}
   .welcome-stat {border-left:0;border-top:1px solid #D4E0E1;padding:10px 0 0;width:100%}
 }
+
+
+/* Persistent application navigation across every authenticated route */
+:root { --orva-global-nav: 246px; }
+.orva-global-sidebar { position:fixed; z-index:60; inset:0 auto 0 0; width:var(--orva-global-nav); display:flex; flex-direction:column; gap:0; padding:24px 15px 16px; background:#fff; border-right:1px solid #E5E9F0; }
+.orva-global-brand { display:inline-flex; width:max-content; margin:0 0 25px 9px; color:#1A2334; font-size:29px; font-weight:800; letter-spacing:-2px; text-decoration:none; line-height:1; }
+.orva-global-brand span { color:#4263D6; }
+.orva-global-workspace { display:flex; align-items:center; gap:10px; padding:10px 8px; border:1px solid #E7EAF0; border-radius:8px; }
+.orva-global-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:8px; background:#1A3540; color:white; font-weight:800; }
+.orva-global-workspace span:last-child { display:grid; gap:3px; min-width:0; }
+.orva-global-workspace strong { font-size:11px; color:#263244; }
+.orva-global-workspace small { font-size:10px; color:#98A2B3; }
+.orva-global-label { margin:27px 9px 9px; color:#98A2B3; font-size:9px; font-weight:800; letter-spacing:1.1px; }
+.orva-global-label--admin { margin-top:24px; }
+.orva-global-sidebar nav,.orva-global-drawer nav { display:grid; gap:4px; }
+.orva-global-link { min-height:40px; display:flex; align-items:center; gap:11px; padding:0 10px; border-radius:7px; color:#667085; text-decoration:none; font-size:11px; font-weight:600; transition:background .15s,color .15s; }
+.orva-global-link svg { color:#8490A1; flex:0 0 auto; }
+.orva-global-link:hover { background:#F5F7FA; color:#263244; }
+.orva-global-link.is-active { background:#EAF3F2; color:#176F69; }
+.orva-global-link.is-active svg { color:#168C83; }
+.orva-nav-chevron { margin-left:auto; }
+.orva-global-foot { margin-top:auto; padding:15px 9px 0; border-top:1px solid #EEF0F4; color:#A0A8B5; font-size:9px; }
+.orva-mobile-bar,.orva-global-backdrop,.orva-global-drawer { display:none; }
+body:has(.orva-global-sidebar) { padding-left:var(--orva-global-nav); }
+body:has(.orva-global-sidebar) > * { min-width:0; }
+body:has(.orva-global-sidebar) .sidebar,body:has(.orva-global-sidebar) .erp-sidebar { display:none !important; }
+body:has(.orva-global-sidebar) .content,body:has(.orva-global-sidebar) .erp-main { margin-left:0 !important; }
+body:has(.orva-global-sidebar) .app-shell { min-height:100vh; }
+body:has(.orva-global-sidebar) .page { max-width:1360px; }
+body:has(.orva-global-sidebar) .erp-content { max-width:1440px; margin:0 auto; }
+@media(max-width:760px) {
+  :root { --orva-global-nav:0px; }
+  body:has(.orva-global-sidebar) { padding-left:0; padding-top:58px; }
+  .orva-global-sidebar { display:none; }
+  .orva-mobile-bar { position:fixed; z-index:55; inset:0 0 auto; height:58px; display:flex; align-items:center; gap:14px; padding:0 16px; background:rgba(255,255,255,.96); border-bottom:1px solid #E5E9F0; backdrop-filter:blur(14px); }
+  .orva-mobile-bar .orva-global-brand { margin:0; font-size:26px; }
+  .orva-mobile-context { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#667085; font-size:12px; font-weight:600; text-transform:capitalize; }
+  .orva-mobile-bar button,.orva-drawer-head button { display:grid; place-items:center; width:38px; height:38px; border:1px solid #E7EAF0; border-radius:8px; background:white; color:#344054; }
+  .orva-global-backdrop { position:fixed; z-index:69; inset:0; display:block; border:0; background:rgba(16,24,40,.38); }
+  .orva-global-drawer { position:fixed; z-index:70; inset:0 auto 0 0; width:min(320px,86vw); display:flex; flex-direction:column; padding:20px 15px 16px; background:#fff; box-shadow:16px 0 44px rgba(16,24,40,.16); }
+  .orva-drawer-head { display:flex; align-items:center; justify-content:space-between; }
+  .orva-drawer-head .orva-global-brand { margin:0 0 18px 8px; }
+  .orva-global-drawer .orva-global-label { margin-top:20px; }
+  body:has(.orva-global-sidebar) .procurement-content { padding-left:16px; padding-right:16px; }
+}

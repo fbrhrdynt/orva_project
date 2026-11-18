@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@fontsource-variable/manrope";
 import "./globals.css";
 import "./ux-polish.css";
+import WorkspaceNavigation from "@/components/workspace-navigation";
 
 export const metadata: Metadata = {
   title: "orva. | Enterprise Business Platform",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><WorkspaceNavigation />{children}</body>
     </html>
   );
 }

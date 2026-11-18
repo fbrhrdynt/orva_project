@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowLeftRight, Boxes, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowLeftRight, Boxes, RefreshCw, Warehouse, Package, Info } from "lucide-react";
 
 type Workspace = { companies: Array<{ id: string; code: string; name: string }> };
 type Item = { id: string; sku: string; name: string; uom: { code: string; name: string } };
-type Warehouse = { id: string; code: string; name: string };
-type Balance = { item?: Item; warehouse?: Warehouse; quantity: string };
-type StockData = { items: Item[]; warehouses: Warehouse[]; balances: Balance[] };
+type WarehouseRow = { id: string; code: string; name: string };
+type Balance = { item?: Item; warehouse?: WarehouseRow; quantity: string };
+type StockData = { items: Item[]; warehouses: WarehouseRow[]; balances: Balance[] };
 const qty = (value: string) => Number(value).toLocaleString("id-ID", { maximumFractionDigits: 4 });
 
 export default function InventoryPage() {
@@ -26,6 +26,7 @@ export default function InventoryPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (id: string) => {
     if (!id) return;
@@ -51,7 +52,7 @@ export default function InventoryPage() {
       const id = p.selectedCompanyId || p.companies?.[0]?.id || "";
       setCompanyId(id);
       if (id) await load(id);
-    }).catch(e => { if (active) setError(e instanceof Error ? e.message : "Unable to load inventory."); });
+    }).catch(e => { if (active) setError(e instanceof Error ? e.message : "Unable to load inventory."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [router, load]);
 
@@ -64,32 +65,48 @@ export default function InventoryPage() {
       const response = await fetch("/api/inventory/stock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Inventory transaction failed.");
-      setMessage(action === "TRANSFER" ? "Warehouse transfer posted." : "Stock adjustment posted.");
+      setMessage(action === "TRANSFER" ? "Transfer stok berhasil dicatat." : "Penyesuaian stok berhasil dicatat.");
       setQuantity(""); setNotes("");
       await load(companyId);
     } catch (e) { setError(e instanceof Error ? e.message : "Inventory transaction failed."); }
     finally { setBusy(false); }
   }
 
-  return <main className="erp-shell">
-    <aside className="erp-sidebar"><Link href="/" className="erp-wordmark">orva<span>.</span></Link><div className="erp-nav-label">OPERATIONS</div><nav className="erp-nav"><Link href="/overview" className="erp-nav-link">Overview</Link><Link href="/procurement" className="erp-nav-link">Procurement</Link><Link href="/master-data" className="erp-nav-link">Master data</Link><Link href="/inventory" className="erp-nav-link active">Inventory</Link><Link href="/subscription" className="erp-nav-link">Subscription</Link></nav></aside>
-    <section className="erp-main"><header className="erp-topbar"><div className="erp-breadcrumb"><Link href="/overview">Workspace</Link><span>/</span><strong>Inventory</strong></div><button type="button" onClick={() => void load(companyId)} aria-label="Refresh stock"><RefreshCw size={16}/></button></header>
-      <div className="erp-content"><div className="erp-page-head"><div><div className="erp-kicker">SUPPLY CHAIN / INVENTORY</div><h1>Stock management</h1><p>Stock balances are calculated from immutable inventory ledger entries.</p></div><Link href="/master-data" className="erp-button erp-button--secondary"><ArrowLeft size={14}/> Master data</Link></div>
-        {workspace && <label className="erp-field">Company<select value={companyId} onChange={e => { setCompanyId(e.target.value); setData(null); void load(e.target.value).catch(err => setError(err.message)); }} className="erp-input">{workspace.companies.map(c => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>}
-        {error && <div className="demo-notice" role="alert">{error}</div>}{message && <div className="demo-notice" role="status">{message}</div>}
-        <section className="erp-panel"><div className="panel-head"><div><h2>Stock transaction</h2><p>Adjust on-hand quantity or transfer stock between warehouses.</p></div><ArrowLeftRight size={18}/></div>
-          <form onSubmit={submit} className="erp-form-grid">
-            <label>Transaction<select value={action} onChange={e => setAction(e.target.value as typeof action)} className="erp-input"><option value="ADJUSTMENT_IN">Adjustment in</option><option value="ADJUSTMENT_OUT">Adjustment out</option><option value="TRANSFER">Warehouse transfer</option></select></label>
-            <label>Item<select required value={itemId} onChange={e => setItemId(e.target.value)} className="erp-input"><option value="">Select item</option>{data?.items.map(i => <option key={i.id} value={i.id}>{i.sku} · {i.name}</option>)}</select></label>
-            <label>{action === "TRANSFER" ? "From warehouse" : "Warehouse"}<select required value={warehouseId} onChange={e => setWarehouseId(e.target.value)} className="erp-input"><option value="">Select warehouse</option>{data?.warehouses.map(w => <option key={w.id} value={w.id}>{w.code} · {w.name}</option>)}</select></label>
-            {action === "TRANSFER" && <label>To warehouse<select required value={toWarehouseId} onChange={e => setToWarehouseId(e.target.value)} className="erp-input"><option value="">Select destination</option>{data?.warehouses.filter(w => w.id !== warehouseId).map(w => <option key={w.id} value={w.id}>{w.code} · {w.name}</option>)}</select></label>}
-            <label>Quantity<input required type="number" min="0.0001" step="0.0001" value={quantity} onChange={e => setQuantity(e.target.value)} className="erp-input" placeholder="0.0000"/></label>
-            <label>Notes<input value={notes} onChange={e => setNotes(e.target.value)} className="erp-input" maxLength={500} placeholder="Reason / reference"/></label>
-            <button disabled={busy || !data?.items.length || !data?.warehouses.length} className="erp-button erp-button--primary" type="submit">{busy ? "Posting…" : action === "TRANSFER" ? "Post transfer" : "Post adjustment"}</button>
-          </form>
+  const totalBalances = data?.balances.length ?? 0;
+  const itemCount = data?.items.length ?? 0;
+  const warehouseCount = data?.warehouses.length ?? 0;
+
+  return <main className="erp-shell inventory-shell">
+    <section className="erp-main"><header className="erp-topbar"><div className="erp-breadcrumb"><Link href="/">Workspace</Link><span>/</span><strong>Inventory</strong></div><div className="erp-top-actions"><button type="button" onClick={() => void load(companyId)} aria-label="Refresh stock" disabled={loading}><RefreshCw size={16}/></button></div></header>
+      <div className="erp-content inventory-content">
+        <div className="inventory-heading"><div><div className="erp-kicker">SUPPLY CHAIN / INVENTORY CONTROL</div><h1>Inventory</h1><p>Kelola saldo stok, penyesuaian barang, dan perpindahan antar-gudang.</p></div>{workspace && <label className="inventory-company"><span>Perusahaan aktif</span><select value={companyId} onChange={e => { const id=e.target.value; setCompanyId(id); setData(null); setLoading(true); void load(id).catch(err => setError(err.message)).finally(()=>setLoading(false)); }}>{workspace.companies.map(c => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>}</div>
+        {error && <div className="inventory-alert inventory-alert--error" role="alert">{error}</div>}{message && <div className="inventory-alert inventory-alert--success" role="status">{message}</div>}
+        <section className="inventory-metrics">
+          <article><span><Package size={16}/> Item terdaftar</span><strong>{loading ? "—" : itemCount}</strong><small>Master item aktif di perusahaan</small></article>
+          <article><span><Warehouse size={16}/> Gudang</span><strong>{loading ? "—" : warehouseCount}</strong><small>Lokasi penyimpanan terdaftar</small></article>
+          <article><span><Boxes size={16}/> Baris saldo stok</span><strong>{loading ? "—" : totalBalances}</strong><small>Kombinasi item dan gudang yang memiliki saldo</small></article>
         </section>
-        <section className="erp-panel"><div className="panel-head"><div><h2>On-hand stock</h2><p>{data?.items.length ?? 0} stock items · {data?.warehouses.length ?? 0} active warehouses</p></div><Boxes size={18}/></div>
-          <div className="table-scroll"><table className="erp-table"><thead><tr><th>SKU</th><th>Item</th><th>Warehouse</th><th>On hand</th><th>UOM</th></tr></thead><tbody>{data?.balances.map((b,i)=><tr key={i}><td className="record-code">{b.item?.sku}</td><td>{b.item?.name}</td><td>{b.warehouse?.code} · {b.warehouse?.name}</td><td className="numeric">{qty(b.quantity)}</td><td>{b.item?.uom.code}</td></tr>)}{data && data.balances.length===0 && <tr><td colSpan={5}>No stock ledger entries yet. Receive a purchase order or post an opening adjustment.</td></tr>}</tbody></table></div>
+        <div className="inventory-columns">
+          <section className="inventory-panel inventory-transaction">
+            <div className="inventory-panel-head"><div><span className="inventory-step">STOCK OPERATIONS</span><h2>Catat transaksi stok</h2><p>Pilih jenis transaksi, item, lokasi, dan kuantitas.</p></div><ArrowLeftRight size={20}/></div>
+            <form onSubmit={submit} className="inventory-form">
+              <label>Jenis transaksi<select value={action} onChange={e => setAction(e.target.value as typeof action)}><option value="ADJUSTMENT_IN">Stok masuk / opening balance</option><option value="ADJUSTMENT_OUT">Stok keluar / koreksi</option><option value="TRANSFER">Transfer antar-gudang</option></select></label>
+              <label>Item<select required value={itemId} onChange={e => setItemId(e.target.value)}><option value="">Pilih item</option>{data?.items.map(i => <option key={i.id} value={i.id}>{i.sku} · {i.name}</option>)}</select></label>
+              <label>{action === "TRANSFER" ? "Gudang asal" : "Gudang"}<select required value={warehouseId} onChange={e => setWarehouseId(e.target.value)}><option value="">Pilih gudang</option>{data?.warehouses.map(w => <option key={w.id} value={w.id}>{w.code} · {w.name}</option>)}</select></label>
+              {action === "TRANSFER" && <label>Gudang tujuan<select required value={toWarehouseId} onChange={e => setToWarehouseId(e.target.value)}><option value="">Pilih gudang tujuan</option>{data?.warehouses.filter(w => w.id !== warehouseId).map(w => <option key={w.id} value={w.id}>{w.code} · {w.name}</option>)}</select></label>}
+              <label>Kuantitas<input required type="number" min="0.0001" step="0.0001" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Contoh: 10"/></label>
+              <label>Catatan / referensi<input value={notes} onChange={e => setNotes(e.target.value)} maxLength={500} placeholder="Alasan penyesuaian atau nomor dokumen"/></label>
+              <button disabled={busy || loading || !data?.items.length || !data?.warehouses.length || !companyId} type="submit">{busy ? "Menyimpan transaksi…" : action === "TRANSFER" ? "Simpan transfer" : "Simpan transaksi stok"}</button>
+              {(!itemCount || !warehouseCount) && !loading && <p className="inventory-hint">Untuk mencatat stok, daftarkan minimal satu item dan satu gudang di <Link href="/master-data">Master Data</Link>.</p>}
+            </form>
+          </section>
+          <section className="inventory-panel inventory-guide"><div className="inventory-panel-head"><div><span className="inventory-step">HOW IT WORKS</span><h2>Alur inventory</h2><p>Saldo dihitung dari catatan transaksi, bukan diketik langsung.</p></div><Info size={19}/></div>
+            <ol><li><b>Master Data</b><span>Daftarkan item, satuan, dan gudang.</span></li><li><b>Stok awal</b><span>Catat kuantitas awal melalui transaksi stok masuk.</span></li><li><b>Operasional</b><span>Catat penerimaan, pengeluaran, atau transfer sesuai aktivitas.</span></li><li><b>Kontrol saldo</b><span>Periksa jumlah per item dan lokasi pada tabel saldo.</span></li></ol>
+            <Link href="/master-data" className="inventory-master-link">Buka Master Data <ArrowUpRight size={15}/></Link>
+          </section>
+        </div>
+        <section className="inventory-panel inventory-balance"><div className="inventory-panel-head"><div><span className="inventory-step">STOCK VISIBILITY</span><h2>Saldo stok per gudang</h2><p>Jumlah stok yang tercatat untuk setiap item dan lokasi.</p></div><span className="inventory-record-count">{totalBalances} baris</span></div>
+          <div className="table-scroll"><table className="erp-table"><thead><tr><th>SKU</th><th>Nama item</th><th>Gudang</th><th className="numeric">Saldo</th><th>Satuan</th></tr></thead><tbody>{data?.balances.map((b,i)=><tr key={i}><td className="record-code">{b.item?.sku ?? "—"}</td><td>{b.item?.name ?? "—"}</td><td>{b.warehouse?.code} · {b.warehouse?.name}</td><td className="numeric">{qty(b.quantity)}</td><td>{b.item?.uom.code ?? "—"}</td></tr>)}{!loading && data && data.balances.length===0 && <tr><td colSpan={5}><div className="inventory-empty"><Boxes size={24}/><b>Belum ada saldo stok</b><span>Setelah item dan gudang tersedia, catat stok awal melalui formulir transaksi di atas. Saldo akan muncul di sini.</span></div></td></tr>}{loading && <tr><td colSpan={5}>Memuat saldo stok…</td></tr>}</tbody></table></div>
         </section>
       </div>
     </section>
