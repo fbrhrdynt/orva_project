@@ -42,7 +42,22 @@ export default function PlatformAdminPage() {
 
   useEffect(() => { void load(); }, []);
 
-  async function setTenantStatus(tenant: Tenant) {\n    const archive = tenant.status !== "ARCHIVED";\n    const action = archive ? "ARCHIVE" : "RESTORE";\n    const message = archive ? `Arsipkan workspace ${tenant.slug}? Pengguna tenant tidak dapat login sampai workspace dipulihkan. Data bisnis tidak dihapus.` : `Pulihkan workspace ${tenant.slug}?`;\n    if (!window.confirm(message)) return;\n    setError(""); setNotice("");\n    try {\n      const response = await fetch(`/api/platform/tenants/${encodeURIComponent(tenant.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });\n      const payload = await response.json();\n      if (!response.ok) throw new Error(payload.error || "Perubahan status workspace gagal.");\n      setNotice(archive ? "Workspace berhasil diarsipkan. Data tetap tersimpan." : "Workspace berhasil dipulihkan.");\n      await load();\n    } catch (e) { setError(e instanceof Error ? e.message : "Perubahan status workspace gagal."); }\n  }\n\n  async function provision(event: React.FormEvent<HTMLFormElement>) {
+  async function setTenantStatus(tenant: Tenant) {
+    const archive = tenant.status !== "ARCHIVED";
+    const action = archive ? "ARCHIVE" : "RESTORE";
+    const message = archive ? `Arsipkan workspace ${tenant.slug}? Pengguna tenant tidak dapat login sampai workspace dipulihkan. Data bisnis tidak dihapus.` : `Pulihkan workspace ${tenant.slug}?`;
+    if (!window.confirm(message)) return;
+    setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/platform/tenants/${encodeURIComponent(tenant.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Perubahan status workspace gagal.");
+      setNotice(archive ? "Workspace berhasil diarsipkan. Data tetap tersimpan." : "Workspace berhasil dipulihkan.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Perubahan status workspace gagal."); }
+  }
+
+  async function provision(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError(""); setNotice("");
     try {
       const response = await fetch("/api/platform/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tenantId, planId, deploymentMode, billingInterval, currency, unitPrice: Number(unitPrice), currentPeriodEnd: new Date(periodEnd + "T23:59:59.999+07:00").toISOString(), status }) });
