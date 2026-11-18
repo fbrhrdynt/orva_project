@@ -83,7 +83,7 @@ export default function Home() {
     const matchesQuery = !normalizedQuery || [app.name, app.description, app.group].some((value) => value.toLowerCase().includes(normalizedQuery));
     const matchesGroup = groupFilter === "All applications" || app.group === groupFilter;
     const entitlementKey = app.name === "Procurement" ? "procurement" : app.name === "Inventory" ? "inventory" : null;
-    const permitted = !entitlementKey || enabledModules.length === 0 || enabledModules.includes(entitlementKey);
+    const permitted = !entitlementKey || enabledModules.includes(entitlementKey);
     return matchesQuery && matchesGroup && permitted;
   }), [normalizedQuery, groupFilter, enabledModules]);
 
@@ -109,7 +109,7 @@ export default function Home() {
           <Link className="nav-item" href="/company-settings"><Settings2 size={17}/><span>Company configuration</span></Link>
           <Link className="nav-item" href="/subscription"><Wallet size={17}/><span>Subscription & usage</span></Link>
           <Link className="nav-item" href="/platform"><ShieldCheck size={17}/><span>Platform administration</span></Link>
-          <a className="nav-item" href="mailto:support@febro.id"><CircleHelp size={17}/><span>Help & support</span></a>
+          <a className="nav-item" href="#help"><CircleHelp size={17}/><span>Help & support</span></a>
           <div className="profile"><div className="avatar">{userLabel.slice(0,2).toUpperCase()}</div><div className="profile-copy"><strong>{userLabel}</strong><span>Signed-in workspace user</span></div><ChevronDown size={15}/></div>
         </div>
       </aside>
