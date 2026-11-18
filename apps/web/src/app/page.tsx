@@ -53,6 +53,21 @@ export default function Home() {
   const normalizedQuery = query.trim().toLowerCase();
 
   useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        document.getElementById("orva-app-search")?.focus();
+      }
+      if (event.key === "Escape" && document.activeElement?.id === "orva-app-search") {
+        setQuery("");
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+    }
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     fetch("/api/workspace", { cache: "no-store" }).then(async (response) => {
       if (response.status === 401) { router.replace("/login"); return null; }
@@ -128,9 +143,9 @@ export default function Home() {
           </div>
         </header>
         <div className="page">
-          <section className="page-heading"><div><div className="eyebrow">YOUR BUSINESS, CONNECTED</div><h1>Good to see you.</h1><p>Choose a workspace to continue your daily operations.</p></div><div className="heading-meta"><span className="meta-label">PLATFORM RELEASE</span><strong>{PLATFORM_VERSION}</strong></div></section>
+          <section className="page-heading"><div><div className="eyebrow">YOUR BUSINESS, CONNECTED</div><h1>Good to see you, {userLabel.split(" ")[0]}.</h1><p>Choose an application to continue your daily operations.</p></div><div className="heading-meta"><span className="meta-label">PLATFORM RELEASE</span><strong>{PLATFORM_VERSION}</strong></div></section>
           <section className="workspace-welcome"><div><span className="welcome-kicker">WORKSPACE AT A GLANCE</span><strong>{companies.find(c => c.id === companyId)?.name || "Your organization"}</strong><span>One place to manage purchasing, stock and company records.</span></div><div className="welcome-stat"><strong>{availableCount}</strong><span>Available workspaces</span></div></section>
-          <div className="search-row"><label className="search-box"><Search size={17} aria-hidden="true"/><input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search applications" placeholder="Search modules, tasks or settings..." />{query ? <button className="clear-search" type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={14}/></button> : <kbd>⌘ K</kbd>}</label><label className="filter-control"><span className="filter-label">Category</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option>All applications</option>{groups.map((group) => <option key={group.name}>{group.name}</option>)}</select><ChevronDown size={15} aria-hidden="true"/></label></div>
+          <div className="search-row"><label className="search-box"><Search size={17} aria-hidden="true"/><input id="orva-app-search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search applications" placeholder="Search applications, tasks or settings..." />{query ? <button className="clear-search" type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={14}/></button> : <kbd>⌘ K</kbd>}</label><label className="filter-control"><span className="filter-label">Category</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option>All applications</option>{groups.map((group) => <option key={group.name}>{group.name}</option>)}</select><ChevronDown size={15} aria-hidden="true"/></label></div>
           <div className="results-line"><span>{filtered.length} workspaces and modules</span><span><ArrowDownUp size={13}/> Organized by workflow</span></div>
           {visibleGroups.length > 0 ? visibleGroups.map((group, groupIndex) => (
             <section className={`application-section application-section--${groupIndex % 4}`} key={group.name}>
