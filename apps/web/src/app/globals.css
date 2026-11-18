@@ -657,3 +657,14 @@ body{font-family:var(--orva-font);background:var(--orva-page);color:var(--orva-i
 .workspace-welcome .welcome-kicker,.welcome-stat strong{color:var(--orva-navy)}
 .application-status.is-available{color:var(--orva-success);background:#EFF8F3;border-color:#D7EBDD}
 .application-status.is-planned{color:var(--orva-muted);background:var(--orva-subtle);border-color:var(--orva-border)}
+
+
+/* Keep the global navigation as the single source of navigation controls. */
+@media (max-width: 760px) {
+  .topbar .mobile-menu { display: none !important; }
+}
+.application-status.is-locked {
+  color: var(--orva-warning);
+  background: #FFF7E8;
+  border: 1px solid #F1DFB9;
+}
