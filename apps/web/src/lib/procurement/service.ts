@@ -23,8 +23,8 @@ type CreatePurchaseOrderInput = {
   companyId: string;
   supplierId: string;
   documentNumber: string;
-  documentDate?: Date;
-  expectedAt?: Date;
+  documentDate?: Date | string;
+  expectedAt?: Date | string;
   currency?: string;
   paymentTermDays?: number;
   supplierReference?: string;
@@ -74,6 +74,18 @@ function percentage(value: string | number | undefined, label: string): Prisma.D
   const result = decimal(value ?? 0, label);
   if (result.lt(0) || result.gt(100)) throw new Error(`${label} must be between 0 and 100.`);
   return result;
+}
+
+function optionalDate(value: Date | string | undefined, label: string, required = false): Date | undefined {
+  if (value === undefined || value === null || value === "") {
+    if (required) throw new Error(`${label} is required.`);
+    return undefined;
+  }
+  const parsed = value instanceof Date ? value : /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00.000Z`)
+    : new Date(value);
+  if (Number.isNaN(parsed.getTime())) throw new Error(`${label} must be a valid date.`);
+  return parsed;
 }
 
 function currencyCode(value: string | undefined): string {
@@ -313,6 +325,9 @@ export async function createPurchaseOrder(
   const supplierId = requiredText(input.supplierId, "Supplier");
   const documentNumber = requiredText(input.documentNumber, "Purchase order number", 40).toUpperCase();
   const currency = currencyCode(input.currency);
+  const documentDate = optionalDate(input.documentDate, "Document date", true)!;
+  const expectedAt = optionalDate(input.expectedAt, "Expected delivery date");
+  if (expectedAt && expectedAt < documentDate) throw new Error("Expected delivery date cannot be earlier than the document date.");
   const paymentTermDays = input.paymentTermDays ?? 30;
   if (!Number.isInteger(paymentTermDays) || paymentTermDays < 0 || paymentTermDays > 3650) {
     throw new Error("Payment term must be a whole number between 0 and 3650.");
@@ -373,8 +388,8 @@ export async function createPurchaseOrder(
       companyId: input.companyId,
       supplierId,
       documentNumber,
-      documentDate: input.documentDate,
-      expectedAt: input.expectedAt,
+      documentDate,
+      expectedAt,
       currency,
       paymentTermDays,
       supplierReference: input.supplierReference?.trim() || undefined,
