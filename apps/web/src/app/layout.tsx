@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/manrope";
 import "./globals.css";
+import "./ux-polish.css";
 
 export const metadata: Metadata = {
   title: "orva. | Enterprise Business Platform",
