@@ -518,10 +518,17 @@ export async function createGoodsReceipt(context: VerifiedTenantContext, input: 
           },
         });
       }
-      await tx.purchaseOrderLine.update({
-        where: { id: ids[i] },
+      const receivedUpdate = await tx.purchaseOrderLine.updateMany({
+        where: {
+          id: ids[i],
+          purchaseOrderId: order.id,
+          receivedQty: { lte: receivedLine!.quantity.minus(quantities[i]) },
+        },
         data: { receivedQty: { increment: quantities[i] } },
       });
+      if (receivedUpdate.count !== 1) {
+        throw new Error("The purchase order line was received concurrently or its outstanding quantity changed. Refresh and try again.");
+      }
     }
 
     const refreshed = await tx.purchaseOrderLine.findMany({
