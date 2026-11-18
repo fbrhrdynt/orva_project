@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const companyId = url.searchParams.get("companyId") ?? "";
-    requirePermission(auth.context, "procurement.goods_receipt.create");
+    requirePermission(auth.context, "procurement.goods_receipt.read");
+    requirePermission(auth.context, "procurement.purchase_order.read");
     requireCompanyAccess(auth.context, companyId);
     const [warehouses, orders] = await Promise.all([
       db.warehouse.findMany({
