@@ -84,7 +84,7 @@ function optionalDate(value: Date | string | undefined, label: string, required 
   const parsed = value instanceof Date ? value : /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
     ? new Date(`${value}T00:00:00.000Z`)
     : new Date(value);
-  if (Number.isNaN(parsed.getTime())) throw new Error(`${label} must be a valid date.`);
+  if (Number.isNaN(parsed.getTime()) || (/^\\d{4}-\\d{2}-\\d{2}$/.test(value instanceof Date ? "" : value) && parsed.toISOString().slice(0, 10) !== value)) throw new Error(`${label} must be a valid date.`);
   return parsed;
 }
 
