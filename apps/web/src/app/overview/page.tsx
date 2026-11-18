@@ -1,98 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Activity, ArrowUpRight, ClipboardList, Package, RefreshCw, ShoppingCart, Truck, Warehouse } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, Bell, Boxes, CalendarDays, ChevronDown, CircleHelp, ClipboardCheck, Download, LayoutGrid, MoreHorizontal, PackageCheck, Plus, Search, ShoppingCart, Users, Wallet } from "lucide-react";
 
-type Overview = {
-  company: { id: string; code: string; name: string; currency: string };
-  metrics: { purchaseOrders: number; pendingApproval: number; committedPurchaseValue: number; pendingPurchaseValue: number; requisitions: number; goodsReceipts: number; suppliers: number; customers: number; items: number; warehouses: number };
-  purchaseOrders: Array<{ id: string; documentNumber: string; documentDate: string; status: string; currency: string; grandTotal: string; supplier: { name: string } }>;
-  activity: Array<{ id: string; action: string; entityType: string; entityId: string | null; severity: string; occurredAt: string; actorUserId: string | null }>;
-};
-const money = (value: number, currency: string) => new Intl.NumberFormat("id-ID", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
-const date = (value: string) => new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
-const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, letter => letter.toUpperCase());
-
-export default function OverviewPage() {
-  const router = useRouter();
-  const [data, setData] = useState<Overview | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  async function load() {
-    setLoading(true); setError("");
-    try {
-      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
-      if (workspaceResponse.status === 401) { router.replace("/login"); return; }
-      const workspace = await workspaceResponse.json();
-      if (!workspaceResponse.ok) throw new Error(workspace.error || "Unable to load workspace.");
-      const companyId = workspace.selectedCompanyId || workspace.companies?.[0]?.id;
-      if (!companyId) throw new Error("No active company is assigned to this account.");
-      const response = await fetch("/api/overview?companyId=" + encodeURIComponent(companyId), { cache: "no-store" });
-      const payload = await response.json();
-      if (response.status === 401) { router.replace("/login"); return; }
-      if (!response.ok) throw new Error(payload.error || "Unable to load overview.");
-      setData(payload);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load overview."); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { void load(); }, []);
-  const cards = data ? [
-    { title: "Purchase orders", value: data.metrics.purchaseOrders, note: "All recorded documents", icon: ShoppingCart },
-    { title: "Awaiting approval", value: data.metrics.pendingApproval, note: "Purchase orders and requisitions", icon: ClipboardList },
-    { title: "Committed purchasing", value: money(data.metrics.committedPurchaseValue, data.company.currency), note: "Total purchase order value", icon: Truck },
-    { title: "Goods receipts", value: data.metrics.goodsReceipts, note: "Recorded receiving documents", icon: Package },
-  ] : [];
-  return <main className="erp-shell">
-    <aside className="erp-sidebar">
-      <Link href="/" className="erp-wordmark">orva<span>.</span></Link>
-      <div className="erp-company"><span className="company-monogram">{data?.company.code.slice(0,1) || "O"}</span><span><strong>{data?.company.name || "Workspace"}</strong><small>Business workspace</small></span></div>
-      <div className="erp-nav-label">Workspace</div>
-      <nav className="erp-nav">
-        <Link className="erp-nav-link active" href="/overview"><Activity size={16}/>Overview</Link>
-        <Link className="erp-nav-link" href="/procurement"><ShoppingCart size={16}/>Procurement</Link>
-        <Link className="erp-nav-link" href="/master-data"><Package size={16}/>Master data</Link>
-        <Link className="erp-nav-link" href="/subscription"><Warehouse size={16}/>Subscription</Link>
-        <div className="erp-nav-divider" />
-        <div className="erp-nav-label erp-nav-label--group">Business modules</div>
-        <Link className="erp-nav-link" href="/procurement"><ShoppingCart size={16}/>Procurement</Link>
-        <Link className="erp-nav-link" href="/master-data"><Package size={16}/>Inventory & master data</Link>
-        <span className="erp-nav-link erp-nav-link--planned"><Truck size={16}/>Sales & CRM <small>Planned</small></span>
-        <span className="erp-nav-link erp-nav-link--planned"><ClipboardList size={16}/>Finance <small>Planned</small></span>
-        <span className="erp-nav-link erp-nav-link--planned"><Warehouse size={16}/>People & payroll <small>Planned</small></span>
-        <span className="erp-nav-link erp-nav-link--planned"><Activity size={16}/>Projects & timesheets <small>Planned</small></span>
-        <span className="erp-nav-link erp-nav-link--planned"><Package size={16}/>Assets & maintenance <small>Planned</small></span>
-        <span className="erp-nav-link erp-nav-link--planned"><ClipboardList size={16}/>Documents & reports <small>Planned</small></span>
-      </nav>
-      <div className="erp-sidebar-bottom"><span className="erp-avatar">OR</span><span><strong>ORVA Workspace</strong><small>Authorized user</small></span></div>
-    </aside>
-    <section className="erp-main">
-      <header className="erp-topbar"><div className="erp-breadcrumb"><span>Workspace</span><span>/</span><strong>Overview</strong></div><div className="erp-top-actions"><button type="button" onClick={() => void load()} disabled={loading} aria-label="Refresh"><RefreshCw size={17}/></button></div></header>
-      <div className="erp-content">
-        <div className="erp-page-head"><div><div className="erp-kicker">BUSINESS OPERATIONS</div><h1>Business overview</h1><p>{data?.company.name || "Your company"} · Live workspace records</p></div><Link className="erp-button erp-button--secondary" href="/procurement">Open procurement <ArrowUpRight size={14}/></Link></div>
-        {error && <div className="demo-notice">{error}</div>}
-        {loading && !data && <section className="erp-panel">Loading live company data…</section>}
-        {data && <>
-          <section className="metric-grid">{cards.map(card => { const Icon=card.icon; return <article className="metric" key={card.title}><span>{card.title}</span><strong>{card.value}</strong><small>{card.note}</small><Icon size={17}/></article>; })}</section>
-          <div className="erp-two-col">
-            <section className="erp-panel"><div className="panel-head"><div><h2>Master data</h2><p>Active records for this company</p></div></div><div className="overview-stat-grid">
-              <Link href="/master-data?type=suppliers" className="overview-stat"><span>Suppliers</span><strong>{data.metrics.suppliers}</strong><small>Supplier records</small></Link>
-              <Link href="/master-data?type=customers" className="overview-stat"><span>Customers</span><strong>{data.metrics.customers}</strong><small>Customer records</small></Link>
-              <Link href="/master-data?type=items" className="overview-stat"><span>Items</span><strong>{data.metrics.items}</strong><small>Product catalogue</small></Link>
-              <Link href="/master-data?type=warehouses" className="overview-stat"><span>Warehouses</span><strong>{data.metrics.warehouses}</strong><small>Storage locations</small></Link>
-            </div></section>
-            <section className="erp-panel"><div className="panel-head"><div><h2>Procurement snapshot</h2><p>Current purchasing workload</p></div></div><div className="overview-workload">
-              <Link href="/procurement/requisitions"><span>Purchase requisitions</span><strong>{data.metrics.requisitions}</strong><small>Open requisition register →</small></Link>
-              <div><span>Awaiting approval value</span><strong>{money(data.metrics.pendingPurchaseValue,data.company.currency)}</strong></div>
-              <div><span>Total committed value</span><strong>{money(data.metrics.committedPurchaseValue,data.company.currency)}</strong></div>
-            </div></section>
-          </div>
-          <section className="erp-panel"><div className="panel-head"><div><h2>Recent purchase orders</h2><p>Latest purchasing documents for {data.company.code}</p></div><Link href="/procurement">View register <ArrowUpRight size={14}/></Link></div><div className="table-scroll"><table className="erp-table"><thead><tr><th>Document</th><th>Supplier</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>{data.purchaseOrders.map(row=><tr key={row.id}><td className="record-code">{row.documentNumber}</td><td>{row.supplier.name}</td><td>{date(row.documentDate)}</td><td className="numeric">{money(Number(row.grandTotal),row.currency)}</td><td><span className="status status--neutral">{label(row.status)}</span></td></tr>)}{data.purchaseOrders.length===0&&<tr><td colSpan={5}>No purchase orders recorded yet.</td></tr>}</tbody></table></div></section>
-          <section className="erp-panel"><div className="panel-head"><div><h2>Recent activity</h2><p>Audited events in the current month</p></div></div>{data.activity.length ? data.activity.map(row=><div className="activity-row" key={row.id}><time>{new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jakarta"}).format(new Date(row.occurredAt))}</time><span><strong>{label(row.action)}</strong><small>{row.entityType} · {row.entityId || "—"}</small></span><b>{row.severity}</b></div>) : <p>No recent audit events.</p>}</section>
-        </>}
-        <footer className="erp-footer"><span>orva. · SME business platform</span><span>Live data · IDR · Asia/Jakarta</span></footer>
-      </div>
-    </section>
-  </main>;
+const metrics = [
+  {label:"Total revenue",value:"Rp 2,84 M",change:"+12.8%",note:"vs. previous period",icon:Wallet,positive:true},
+  {label:"Purchase orders",value:"128",change:"+8.2%",note:"vs. previous period",icon:ShoppingCart,positive:true},
+  {label:"Inventory items",value:"1,842",change:"+3.4%",note:"vs. previous period",icon:Boxes,positive:true},
+  {label:"Active customers",value:"246",change:"−1.6%",note:"vs. previous period",icon:Users,positive:false},
+];
+const activities=[
+  {title:"Purchase order created",detail:"PO-2026-0128 · PT Sumber Makmur",time:"10:42 AM",type:"purchase"},
+  {title:"Goods receipt completed",detail:"GR-2026-0084 · Main Warehouse",time:"09:18 AM",type:"inventory"},
+  {title:"New customer registered",detail:"CV Karya Utama · Customer master",time:"Yesterday",type:"customer"},
+  {title:"Purchase requisition submitted",detail:"PR-2026-0192 · Operations",time:"Yesterday",type:"purchase"},
+];
+const orders=[["PO-2026-0128","PT Sumber Makmur","18 Nov 2026","Rp 84.500.000","Pending"],["PO-2026-0127","CV Karya Utama","18 Nov 2026","Rp 32.750.000","Approved"],["PO-2026-0126","PT Mitra Teknik","17 Nov 2026","Rp 16.200.000","Processing"],["PO-2026-0125","PT Andalan Jaya","17 Nov 2026","Rp 9.850.000","Approved"]];
+const bars=[42,56,48,68,59,75,63,82,71,91,78,100];
+export default function OverviewPage(){
+ return <main className="orva-dashboard">
+  <header className="orva-header"><Link href="/" className="orva-brand">orva<span>.</span></Link><div className="orva-header-divider"/><div className="orva-header-context"><span className="orva-context-mark">O</span><span><b>ORVA Workspace</b><small>Enterprise business platform</small></span></div><div className="orva-header-spacer"/><button className="orva-header-icon"><CircleHelp size={18}/></button><button className="orva-header-icon"><Bell size={18}/></button><div className="orva-user"><span className="orva-user-avatar">OR</span><span><b>Workspace</b><small>Guest preview</small></span></div></header>
+  <div className="orva-dashboard-layout"><aside className="orva-rail"><div className="orva-rail-section">WORKSPACE</div><Link href="/" className="orva-rail-link"><LayoutGrid size={18}/>Applications</Link><Link href="/overview" className="orva-rail-link active"><Activity size={18}/>Dashboard</Link><div className="orva-rail-section rail-gap">BUSINESS</div><Link href="/procurement" className="orva-rail-link"><ShoppingCart size={18}/>Procurement</Link><Link href="/inventory" className="orva-rail-link"><Boxes size={18}/>Inventory</Link><Link href="/master-data" className="orva-rail-link"><Users size={18}/>Master data</Link><div className="orva-rail-bottom"><div className="orva-rail-help"><Activity size={17}/><span><b>ORVA Preview</b><small>Explore the workspace</small></span></div><small>ORVA · by LogiSource Digital</small></div></aside>
+   <section className="orva-dashboard-main"><div className="orva-breadcrumb"><span>Workspace</span><span>/</span><b>Executive dashboard</b></div>
+    <div className="orva-dashboard-heading"><div><div className="orva-overline">BUSINESS INTELLIGENCE</div><h1>Executive dashboard</h1><p>Monitor performance and keep your business moving forward.</p></div><div className="orva-dashboard-actions"><button className="orva-outline-button"><CalendarDays size={15}/> 01 Nov — 18 Nov 2026 <ChevronDown size={14}/></button><button className="orva-primary-button"><Download size={15}/> Export report</button></div></div>
+    <div className="orva-dashboard-context"><span className="orva-context-mark">O</span><span><b>ORVA Workspace</b><small>Consolidated business overview</small></span><span className="orva-context-status"><i/> Demo data</span></div>
+    <div className="orva-metric-grid">{metrics.map(m=>{const Icon=m.icon;return <article className="orva-metric-card" key={m.label}><div className="orva-metric-top"><span>{m.label}</span><Icon size={18}/></div><strong>{m.value}</strong><div className="orva-metric-change"><span className={m.positive?"up":"down"}>{m.positive?<ArrowUpRight size={14}/>:<ArrowDownRight size={14}/>} {m.change}</span><small>{m.note}</small></div></article>})}</div>
+    <div className="orva-dashboard-grid"><section className="orva-panel orva-performance"><div className="orva-panel-heading"><div><h2>Business performance</h2><p>Revenue overview · Last 12 months</p></div><button className="orva-more"><MoreHorizontal size={19}/></button></div><div className="orva-chart-summary"><strong>Rp 2.84B</strong><span className="up"><ArrowUpRight size={14}/> 12.8%</span><small>Total revenue</small></div><div className="orva-bar-chart">{bars.map((v,i)=><div className="orva-bar-column" key={i}><div className="orva-bar-track"><span style={{height:v+"%"}}/></div><small>{["Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov"][i]}</small></div>)}</div></section>
+     <section className="orva-panel orva-quick-panel"><div className="orva-panel-heading"><div><h2>Quick actions</h2><p>Common business activities</p></div></div><div className="orva-quick-list"><Link href="/procurement/new"><span className="quick-icon"><Plus size={17}/></span><span><b>Create purchase order</b><small>Start a new procurement order</small></span><ArrowUpRight size={15}/></Link><Link href="/inventory"><span className="quick-icon"><PackageCheck size={17}/></span><span><b>Review inventory</b><small>Check stock and warehouse levels</small></span><ArrowUpRight size={15}/></Link><Link href="/master-data"><span className="quick-icon"><Users size={17}/></span><span><b>Manage business partners</b><small>Customers and suppliers</small></span><ArrowUpRight size={15}/></Link><Link href="/procurement"><span className="quick-icon"><ClipboardCheck size={17}/></span><span><b>Review approvals</b><small>Documents awaiting your action</small></span><ArrowUpRight size={15}/></Link></div></section>
+    </div>
+    <section className="orva-panel orva-orders-panel"><div className="orva-panel-heading"><div><h2>Recent purchase orders</h2><p>Latest procurement documents across your workspace</p></div><Link href="/procurement" className="orva-view-all">View all <ArrowUpRight size={14}/></Link></div><div className="orva-table-wrap"><table className="orva-data-table"><thead><tr><th>Document</th><th>Supplier</th><th>Document date</th><th>Total amount</th><th>Status</th><th/></tr></thead><tbody>{orders.map(o=><tr key={o[0]}><td><b>{o[0]}</b></td><td>{o[1]}</td><td>{o[2]}</td><td>{o[3]}</td><td><span className={"orva-status "+o[4].toLowerCase()}>{o[4]}</span></td><td><MoreHorizontal size={17}/></td></tr>)}</tbody></table></div></section>
+    <section className="orva-panel orva-activity-panel"><div className="orva-panel-heading"><div><h2>Recent activity</h2><p>What's happening across your business</p></div><button className="orva-view-all">Activity log <ArrowUpRight size={14}/></button></div><div className="orva-activity-list">{activities.map((a,i)=><div className="orva-activity-row" key={i}><span className="orva-activity-icon">{a.type==="purchase"?<ShoppingCart size={16}/>:a.type==="inventory"?<Boxes size={16}/>:<Users size={16}/>}</span><span><b>{a.title}</b><small>{a.detail}</small></span><time>{a.time}</time></div>)}</div></section>
+    <footer className="orva-launcher-footer"><span><b>orva.</b> Enterprise platform</span><span>One workspace. Connected business.</span></footer>
+   </section>
+  </div>
+ </main>
 }
