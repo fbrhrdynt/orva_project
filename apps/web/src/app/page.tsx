@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Search, LayoutDashboard, ShoppingCart, Boxes, Users, Wallet, Calculator, BriefcaseBusiness, Truck, Wrench, FileText, Settings2, ShieldCheck, Grid2X2, ArrowUpRight, Star, Clock3, ChevronRight, Command, Sparkles } from "lucide-react";
+import { Search, LayoutDashboard, ShoppingCart, Boxes, Users, Calculator, BriefcaseBusiness, Truck, Wrench, FileText, Settings2, ShieldCheck, Grid2X2, ArrowUpRight, Star, Clock3, ChevronRight, Command, Sparkles } from "lucide-react";
 
 const groups = [
   { title: "My workspace", subtitle: "Your daily starting point", apps: [
@@ -31,7 +31,6 @@ export default function Home() {
   const [category, setCategory] = useState("All applications");
   const [favorites, setFavorites] = useState<string[]>(["Executive dashboard", "Procurement"]);
   const [showFavorites, setShowFavorites] = useState(false);
-  const apps = groups.flatMap(g => g.apps);
   const filteredGroups = useMemo(() => groups.map(g => ({...g, apps:g.apps.filter(a => {
     const matches = !query || (a.name+" "+a.desc+" "+a.tag).toLowerCase().includes(query.toLowerCase());
     const categoryMatch = category === "All applications" || a.category === category;
