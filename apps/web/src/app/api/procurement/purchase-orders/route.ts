@@ -4,6 +4,14 @@ import { createPurchaseOrder, listPurchaseOrders } from "@/lib/procurement/servi
 
 export const dynamic = "force-dynamic";
 
+function safeApiError(error: unknown, fallback: string): string {
+  if (error instanceof Error && !error.name.toLowerCase().includes("prisma") && !error.message.includes("Invalid `prisma.")) {
+    return error.message;
+  }
+  console.error("[ORVA procurement API]", error);
+  return fallback;
+}
+
 function sameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
@@ -26,7 +34,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 400;
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to list purchase orders." }, { status });
+    return NextResponse.json({ error: safeApiError(error, "Unable to load purchase orders. Please try again or contact your administrator.") }, { status });
   }
 }
 
@@ -43,6 +51,6 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 400;
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create purchase order." }, { status });
+    return NextResponse.json({ error: safeApiError(error, "Unable to save the purchase order. Check the entered information and try again.") }, { status });
   }
 }
