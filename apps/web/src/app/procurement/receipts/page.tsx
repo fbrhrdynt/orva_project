@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, RefreshCw, Plus, X, PackageCheck } from "lucide-react";
 
 type Company = { id: string; code: string; name: string };
+type Workspace = { permissions?: string[] };
 type Warehouse = { id: string; code: string; name: string };
 type Receipt = { id: string; documentNumber: string; receivedAt: string; supplierDeliveryNote: string | null; purchaseOrder: { documentNumber: string; supplier: { code: string; name: string } }; warehouse: { code: string; name: string }; _count: { lines: number } };
 type OrderLine = { id: string; lineNumber: number; description: string; quantity: string; receivedQty: string; remainingQty: string; uomCode: string; item: { sku: string; name: string } | null };
@@ -17,6 +18,7 @@ const numberFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }
 export default function GoodsReceiptsPage() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [items, setItems] = useState<Receipt[]>([]);
   const [options, setOptions] = useState<Options>({ warehouses: [], orders: [] });
@@ -58,6 +60,7 @@ export default function GoodsReceiptsPage() {
     }).then(async d => {
       if (!active || !d) return;
       setCompanies(d.companies ?? []);
+      setPermissions(d.permissions ?? []);
       const id = d.selectedCompanyId || d.companies?.[0]?.id || "";
       setCompanyId(id);
       if (id) await load(id);
@@ -106,7 +109,7 @@ export default function GoodsReceiptsPage() {
     <section className="procurement-content">
       <Link href="/procurement" className="procurement-back"><ArrowLeft size={14}/> Purchase orders</Link>
       <nav className="procurement-subnav"><Link href="/procurement">Purchase orders</Link><Link href="/procurement/requisitions">Purchase requisitions</Link><Link href="/procurement/receipts">Goods receipts</Link><Link href="/master-data">Master data</Link></nav>
-      <div className="procurement-heading"><div><div className="procurement-eyebrow">PROCUREMENT / RECEIVING</div><h1>Goods receipts</h1><p>Receive supplier deliveries against approved purchase orders and post stock automatically.</p></div><button className="procurement-primary" type="button" onClick={startNewReceipt} disabled={!options.orders.length || !options.warehouses.length}><Plus size={15}/> New goods receipt</button></div>
+      <div className="procurement-heading"><div><div className="procurement-eyebrow">PROCUREMENT / RECEIVING</div><h1>Goods receipts</h1><p>Receive supplier deliveries against approved purchase orders and post stock automatically.</p></div>{permissions.includes("procurement.goods_receipt.create") && <button className="procurement-primary" type="button" onClick={startNewReceipt} disabled={!options.orders.length || !options.warehouses.length}><Plus size={15}/> New goods receipt</button>}</div>
       <label className="procurement-company-select"><select value={companyId} onChange={e => { setCompanyId(e.target.value); setItems([]); setLoading(true); void load(e.target.value).catch(err => setError(err.message)).finally(() => setLoading(false)); }}>{companies.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
       {error && <div className="procurement-error" role="alert">{error}</div>}
       {message && <div className="procurement-panel-foot" role="status">{message}</div>}
