@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Building2, RefreshCw, ShieldCheck, Users, Boxes } from "lucide-react";
+import { Building2, RefreshCw, ShieldCheck, Users, Boxes } from "lucide-react";
 
 type Plan = { id: string; key: string; name: string; maxUsers: number | null; maxCompanies: number | null; maxStorageMb: number | null; supportLevel: string; modules: { moduleKey: string }[] };
 type Tenant = { id: string; name: string; slug: string; status: string; _count: { memberships: number; companies: number }; subscriptions: { id: string; status: string; deploymentMode: string; billingInterval: string; currency: string; unitPrice: string; currentPeriodEnd: string; plan: { key: string; name: string } }[] };
