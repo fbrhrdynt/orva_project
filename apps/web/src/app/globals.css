@@ -536,3 +536,46 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
 .procurement-table input[type="number"] { min-width:105px; max-width:135px; }
 .procurement-form .procurement-table td small { display:block; margin-top:3px; color:#98A2B3; font-size:10px; }
 .procurement-primary:disabled { opacity:.55; cursor:not-allowed; }
+
+
+/* ORVA workspace color system — restrained, semantic and accessible */
+:root {
+  --orva-teal: #168C83;
+  --orva-violet: #7661C8;
+  --orva-amber: #C58A2C;
+  --orva-rose: #C56B79;
+  --orva-sky: #4389BD;
+  --orva-green: #438A65;
+}
+.workspace-welcome {
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  margin:26px 0 22px; padding:20px 22px; border:1px solid #DCE8E7;
+  border-radius:9px; background:linear-gradient(112deg,#EAF5F3 0%,#F1F3FB 56%,#F8F3EA 100%);
+}
+.workspace-welcome > div:first-child {display:grid;gap:5px}
+.workspace-welcome strong {font-size:17px;color:#1A3540;letter-spacing:-.35px}
+.workspace-welcome span {font-size:11px;color:#667586}
+.workspace-welcome .welcome-kicker {font-size:9px;font-weight:800;letter-spacing:1.1px;color:#287E78}
+.welcome-stat {min-width:125px;padding-left:20px;border-left:1px solid #D4E0E1;display:grid;gap:2px}
+.welcome-stat strong {font-size:25px;color:#287E78;font-variant-numeric:tabular-nums}
+.application-item {position:relative;overflow:hidden;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.application-item:hover {transform:translateY(-2px);box-shadow:0 8px 22px rgba(25,42,65,.07)}
+.application-icon {width:38px;height:38px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
+.application-item--tone-0 .application-icon {background:#E8F3F1;color:#23877D}
+.application-item--tone-1 .application-icon {background:#EEF0FA;color:#596FC0}
+.application-item--tone-2 .application-icon {background:#F8F0E4;color:#B17A27}
+.application-item--tone-3 .application-icon {background:#F7EAED;color:#B45E70}
+.application-item--tone-4 .application-icon {background:#EAF1F8;color:#4C82B2}
+.application-item--tone-5 .application-icon {background:#EDF3E9;color:#648B4D}
+.application-item--planned {background:#FAFBFC}
+.application-item--planned .application-icon {background:#F0F1F3;color:#929AA6}
+.application-status.is-available {color:#28734B;background:#EFF7F1;border:1px solid #D7EBDD}
+.application-status.is-planned {color:#8B6B35;background:#FAF5EA;border:1px solid #EEE2C8}
+.application-section--0 .section-count {color:#287E78}
+.application-section--1 .section-count {color:#596FC0}
+.application-section--2 .section-count {color:#B17A27}
+.application-section--3 .section-count {color:#B45E70}
+@media (max-width:700px) {
+  .workspace-welcome {align-items:flex-start;padding:16px;flex-direction:column}
+  .welcome-stat {border-left:0;border-top:1px solid #D4E0E1;padding:10px 0 0;width:100%}
+}
