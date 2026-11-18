@@ -524,3 +524,15 @@ kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 3px; col
 .workspace-company-select { max-width:210px; height:32px; padding:0 9px; border:1px solid rgba(255,255,255,.14); border-radius:5px; background:#fff; color:#475467; font:600 10px Manrope,sans-serif; }
 .workspace-company-select:focus { outline:2px solid rgba(66,99,214,.28); outline-offset:1px; }
 @media(max-width:700px) { .workspace-company-select { max-width:130px; } }
+
+
+/* Goods receipt workspace controls */
+.procurement-form-grid select,
+.procurement-form-grid input,
+.procurement-table input[type="number"] { min-width:0; width:100%; height:36px; padding:0 10px; border:1px solid #E1E5EC; border-radius:4px; background:#fff; color:#344054; font:inherit; font-size:11px; }
+.procurement-form-grid select:focus,
+.procurement-form-grid input:focus,
+.procurement-table input[type="number"]:focus { outline:0; border-color:#8EA2E5; box-shadow:0 0 0 3px rgba(66,99,214,.09); }
+.procurement-table input[type="number"] { min-width:105px; max-width:135px; }
+.procurement-form .procurement-table td small { display:block; margin-top:3px; color:#98A2B3; font-size:10px; }
+.procurement-primary:disabled { opacity:.55; cursor:not-allowed; }
