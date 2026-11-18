@@ -52,7 +52,7 @@ export async function postStockAdjustment(context: VerifiedTenantContext, input:
     if (idempotencyKey) {
       const prior = await tx.stockLedgerEntry.findFirst({ where: { tenantId: context.tenantId, idempotencyKey } });
       if (prior) {
-        const matches = prior.companyId === input.companyId && prior.itemId === item.id && prior.warehouseId === input.warehouseId && prior.movementType === input.movementType && prior.quantity.eq(input.movementType === "ADJUSTMENT_OUT" ? quantity.negated() : quantity) && (prior.unitCost?.eq(unitCost ?? new Prisma.Decimal(0)) ?? unitCost === undefined);
+        const matches = prior.companyId === input.companyId && prior.itemId === item.id && prior.warehouseId === input.warehouseId && prior.movementType === input.movementType && prior.quantity.eq(input.movementType === "ADJUSTMENT_OUT" ? quantity.negated() : quantity) && (unitCost === undefined ? prior.unitCost === null : prior.unitCost?.eq(unitCost) === true);
         if (!matches) throw new Error("Idempotency key has already been used for a different stock adjustment.");
         return { entry: prior, duplicate: true };
       }
