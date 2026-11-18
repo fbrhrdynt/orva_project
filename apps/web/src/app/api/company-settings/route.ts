@@ -1,0 +1,113 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getVerifiedTenantContext } from "@/lib/auth/session";
+import { requireCompanyAccess, requirePermission } from "@/lib/tenant/access";
+
+export const dynamic = "force-dynamic";
+const MODULES = ["finance","sales","procurement","inventory","people","projects","operations","documents","quality","manufacturing","logistics","assets","timesheets"] as const;
+const DEFAULT_ENABLED = new Set(["procurement"]);
+
+function failure(error: unknown) {
+  const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 400;
+  return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to process company settings." }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+export async function GET(request: Request) {
+  const auth = await getVerifiedTenantContext();
+  if (!auth) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  try {
+    requirePermission(auth.context, "company.settings.read");
+    const companyId = new URL(request.url).searchParams.get("companyId") ?? "";
+    requireCompanyAccess(auth.context, companyId);
+    const company = await db.company.findFirst({
+      where: { id: companyId, tenantId: auth.context.tenantId },
+      include: { configuration: true, moduleSettings: { orderBy: { moduleKey: "asc" } }, tenant: { include: { moduleEntitlements: true } }, units: { where: { isActive: true }, orderBy: { name: "asc" } } },
+    });
+    if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
+    const saved = new Map(company.moduleSettings.map((item) => [item.moduleKey, item]));
+    const entitled = new Set(company.tenant.moduleEntitlements.filter((item) => item.isIncluded).map((item) => item.moduleKey));
+    const modules = MODULES.map((key) => {
+      const setting = saved.get(key);
+      const available = entitled.has(key) || (!company.tenant.moduleEntitlements.length && DEFAULT_ENABLED.has(key));
+      return { key, available, isEnabled: available && (setting?.isEnabled ?? DEFAULT_ENABLED.has(key)), configuration: setting?.configuration ?? null };
+    });
+    return NextResponse.json({
+      company: { id: company.id, code: company.code, name: company.name, legalName: company.legalName, taxId: company.taxId, currency: company.currency },
+      configuration: company.configuration,
+      modules,
+      businessUnits: company.units,
+    }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) { return failure(error); }
+}
+
+export async function PUT(request: Request) {
+  const origin = request.headers.get("origin"), host = request.headers.get("host");
+  if (origin && host) { try { if (new URL(origin).host !== host) return NextResponse.json({ error: "Cross-origin requests are not allowed." }, { status: 403 }); } catch { return NextResponse.json({ error: "Invalid request origin." }, { status: 403 }); } }
+  const auth = await getVerifiedTenantContext();
+  if (!auth) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  try {
+    requirePermission(auth.context, "company.settings.manage");
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Invalid settings payload." }, { status: 400 });
+    const input = body as Record<string, unknown>;
+    const companyId = typeof input.companyId === "string" ? input.companyId : "";
+    requireCompanyAccess(auth.context, companyId);
+    const company = await db.company.findFirst({ where: { id: companyId, tenantId: auth.context.tenantId }, select: { id: true } });
+    if (!company) return NextResponse.json({ error: "Company not found." }, { status: 404 });
+
+    const companyData: { name?: string; legalName?: string | null; taxId?: string | null; currency?: string } = {};
+    if (input.company && typeof input.company === "object" && !Array.isArray(input.company)) {
+      const value = input.company as Record<string, unknown>;
+      if (typeof value.name === "string") companyData.name = value.name.trim();
+      if (typeof value.legalName === "string") companyData.legalName = value.legalName.trim() || null;
+      if (typeof value.taxId === "string") companyData.taxId = value.taxId.trim() || null;
+      if (typeof value.currency === "string") companyData.currency = value.currency.trim().toUpperCase();
+      if (companyData.name !== undefined && (!companyData.name || companyData.name.length > 180)) throw new Error("Company name is required and must be under 180 characters.");
+      if (companyData.currency !== undefined && !/^[A-Z]{3}$/.test(companyData.currency)) throw new Error("Currency must be a three-letter code.");
+    }
+
+    let configuration: { locale: string; timezone: string; dateFormat: string; numberFormat: string; fiscalYearStartMonth: number; weekStartsOn: number } | undefined;
+    if (input.configuration && typeof input.configuration === "object" && !Array.isArray(input.configuration)) {
+      const value = input.configuration as Record<string, unknown>;
+      const locale = typeof value.locale === "string" ? value.locale : "en";
+      const timezone = typeof value.timezone === "string" ? value.timezone : "Asia/Jakarta";
+      const dateFormat = typeof value.dateFormat === "string" ? value.dateFormat : "dd/MM/yyyy";
+      const numberFormat = typeof value.numberFormat === "string" ? value.numberFormat : "1.234,56";
+      const fiscalYearStartMonth = Number(value.fiscalYearStartMonth ?? 1);
+      const weekStartsOn = Number(value.weekStartsOn ?? 1);
+      if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale) || timezone.length > 80 || !/^[\w/+-]{1,32}$/.test(timezone) || dateFormat.length > 32 || numberFormat.length > 32 || !Number.isInteger(fiscalYearStartMonth) || fiscalYearStartMonth < 1 || fiscalYearStartMonth > 12 || !Number.isInteger(weekStartsOn) || weekStartsOn < 0 || weekStartsOn > 6) throw new Error("Company localization settings are invalid.");
+      configuration = { locale, timezone, dateFormat, numberFormat, fiscalYearStartMonth, weekStartsOn };
+    }
+
+    const moduleUpdates: Array<{ key: typeof MODULES[number]; isEnabled: boolean }> = [];
+    const entitlements = await db.tenantModuleEntitlement.findMany({ where: { tenantId: auth.context.tenantId, isIncluded: true }, select: { moduleKey: true } });
+    const entitledKeys = new Set(entitlements.map((item) => item.moduleKey));
+    if (entitlements.length === 0) entitledKeys.add("procurement");
+    if (Array.isArray(input.modules)) {
+      if (input.modules.length > MODULES.length) throw new Error("Too many module settings.");
+      for (const entry of input.modules) {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("Invalid module setting.");
+        const item = entry as Record<string, unknown>;
+        if (typeof item.key !== "string" || !MODULES.includes(item.key as typeof MODULES[number]) || typeof item.isEnabled !== "boolean") throw new Error("Invalid module key or enabled state.");
+        if (item.isEnabled && !entitledKeys.has(item.key)) throw new Error("This module is not included in the tenant subscription: " + item.key);
+        moduleUpdates.push({ key: item.key as typeof MODULES[number], isEnabled: item.isEnabled });
+      }
+    }
+
+    await db.$transaction(async (tx) => {
+      if (Object.keys(companyData).length) await tx.company.update({ where: { id: companyId }, data: companyData });
+      if (configuration) await tx.companyConfiguration.upsert({
+        where: { companyId },
+        update: configuration,
+        create: { companyId, ...configuration },
+      });
+      for (const item of moduleUpdates) await tx.companyModuleSetting.upsert({
+        where: { companyId_moduleKey: { companyId, moduleKey: item.key } },
+        update: { isEnabled: item.isEnabled },
+        create: { companyId, moduleKey: item.key, isEnabled: item.isEnabled },
+      });
+      await tx.auditEvent.create({ data: { tenantId: auth.context.tenantId, actorUserId: auth.context.userId, action: "company.settings.updated", entityType: "Company", entityId: companyId, metadata: { company: Boolean(input.company), configuration: Boolean(configuration), modules: moduleUpdates.length } } });
+    });
+    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) { return failure(error); }
+}

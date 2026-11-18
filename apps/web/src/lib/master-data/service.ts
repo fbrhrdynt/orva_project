@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireCompanyAccess, requirePermission, type VerifiedTenantContext } from "@/lib/tenant/access";
 
@@ -121,4 +122,53 @@ export async function listWarehouses(context: VerifiedTenantContext, companyId: 
     db.warehouse.count({ where: { tenantId: context.tenantId, companyId } })
   ]);
   return { items, total };
+}
+
+export async function createWarehouse(context: VerifiedTenantContext, input: {
+  companyId: string; code: string; name: string; address?: string;
+}) {
+  requirePermission(context, "master-data.warehouse.create");
+  await assertCompany(context, input.companyId);
+  const code = cleanText(input.code, "Warehouse code", 32).toUpperCase();
+  const name = cleanText(input.name, "Warehouse name", 180);
+  const warehouse = await db.warehouse.create({
+    data: { tenantId: context.tenantId, companyId: input.companyId, code, name, address: input.address?.trim() || undefined },
+  });
+  await db.auditEvent.create({ data: { tenantId: context.tenantId, actorUserId: context.userId, action: "master_data.warehouse.created", entityType: "Warehouse", entityId: warehouse.id, metadata: { companyId: input.companyId, code } } });
+  return warehouse;
+}
+
+export async function createItem(context: VerifiedTenantContext, input: {
+  companyId: string; sku: string; name: string; uomId: string; categoryId?: string;
+  description?: string; itemType: string; standardCost?: string | number;
+  isStockItem?: boolean; isPurchase?: boolean; isSales?: boolean;
+}) {
+  requirePermission(context, "master-data.item.create");
+  await assertCompany(context, input.companyId);
+  const sku = cleanText(input.sku, "Item SKU", 64).toUpperCase();
+  const name = cleanText(input.name, "Item name", 180);
+  const itemType = cleanText(input.itemType, "Item type", 32).toUpperCase();
+  const uom = await db.unitOfMeasure.findFirst({ where: { id: input.uomId, tenantId: context.tenantId }, select: { id: true } });
+  if (!uom) throw new Error("Unit of measure was not found in this tenant.");
+  if (input.categoryId) {
+    const category = await db.itemCategory.findFirst({ where: { id: input.categoryId, tenantId: context.tenantId }, select: { id: true } });
+    if (!category) throw new Error("Item category was not found in this tenant.");
+  }
+  let standardCost: Prisma.Decimal | undefined;
+  if (input.standardCost !== undefined && input.standardCost !== "") {
+    try { standardCost = new Prisma.Decimal(input.standardCost); }
+    catch { throw new Error("Standard cost must be a valid number."); }
+    if (!standardCost.isFinite() || standardCost.lt(0)) throw new Error("Standard cost cannot be negative.");
+  }
+  const item = await db.item.create({
+    data: {
+      tenantId: context.tenantId, companyId: input.companyId, sku, name, uomId: input.uomId,
+      categoryId: input.categoryId || undefined, description: input.description?.trim() || undefined,
+      itemType, standardCost, isStockItem: input.isStockItem ?? true,
+      isPurchase: input.isPurchase ?? true, isSales: input.isSales ?? true,
+    },
+    include: { category: true, uom: true },
+  });
+  await db.auditEvent.create({ data: { tenantId: context.tenantId, actorUserId: context.userId, action: "master_data.item.created", entityType: "Item", entityId: item.id, metadata: { companyId: input.companyId, sku } } });
+  return item;
 }

@@ -67,6 +67,22 @@ The data model must distinguish:
 
 Tenant isolation is mandatory. Company-level access must be explicit. Consolidated group reporting must be permission-controlled.
 
+### Company-specific configuration and product variation
+
+A tenant may contain multiple legal entities. Each company is independently configurable while sharing the tenant identity, security boundary, and platform services.
+
+Company-specific capabilities include:
+- Module enablement and module configuration per company.
+- Legal entity profile, tax registration, base currency, locale, time zone, date and number formats.
+- Fiscal year start and week start conventions.
+- Company-specific business units, warehouses, customers, suppliers, items, and operational records.
+- Company-specific custom field definitions in addition to tenant-wide custom fields.
+- Explicit user-to-company access. A user may access one, several, or all companies in a tenant according to assigned grants.
+
+Module enablement is not authorization by itself. Every module endpoint must enforce both the user's permission and the selected company's module entitlement. Tenant-wide entitlements may further restrict which modules a company can enable. Company settings must never allow a user to grant themselves company access or permissions.
+
+The default module configuration is a safe platform baseline. Administrators may enable or disable modules independently for each company without creating separate application forks.
+
 ## 5. Module contract
 
 Every module must define:
@@ -112,3 +128,104 @@ Vercel is a deployment platform, not the entire backend architecture. Long-runni
 ## 8. Explicit exclusions
 
 LS_AMT, LS_Inventory, TimesheetStudio, and LogiShell are not source modules in this repository. Any future integration must use a reviewed interface and explicit authorization.
+
+
+## Commercial product and licensing model
+
+ORVA is a licensed ERP product. The default commercial offer is a recurring subscription; perpetual use is a negotiated enterprise option, not an automatic transfer of source code or intellectual property.
+
+### Offerings
+- **Shared Cloud:** multi-tenant SaaS operated by ORVA. Subscription includes platform hosting, standard updates, backups, and support level defined by contract.
+- **Dedicated Cloud:** isolated customer deployment and database, with recurring hosting/operations fees plus implementation.
+- **Self-hosted Enterprise:** customer-operated infrastructure under a perpetual or term license. The contract defines permitted entities, users, modules, environments, update rights, support, audit rights, and termination obligations.
+
+### Commercial separation
+- ProductPlan is the sellable package catalogue and defines user, company, storage, support and module limits.
+- ProductPlanModule defines modules included in each plan.
+- Subscription records the tenant's contracted plan, deployment mode, billing interval, price, contract dates, renewal and payment-provider references.
+- BillingInvoice records invoice lifecycle and payment reconciliation references.
+- TenantModuleEntitlement is the effective tenant-level feature grant; it must be synchronized from the active subscription by trusted billing/platform services, never directly by tenant administrators.
+- CompanyModuleSetting allows each legal entity to disable included modules locally. It cannot grant a module absent from the tenant entitlement.
+- Company configuration remains independent from subscription commercial terms.
+
+### Subscription lifecycle
+Trial -> Active -> Past due -> Suspended or Active after settlement. Cancellation can take effect immediately or at period end. Expired or suspended subscriptions must be blocked by server-side entitlement checks, with a controlled read-only/grace policy defined by contract. Billing webhooks must be signature-verified and idempotent. Never trust browser-submitted prices, plan IDs, payment status, or entitlement changes.
+
+### Limits and metering
+Enforce user, company and storage limits on the server at the operation that creates the resource or consumes storage. Show usage and limit to tenant administrators. Platform operators may override limits only with an audited action and documented reason.
+
+### License and IP policy
+A subscription grants a limited right to use ORVA during the contracted period. It does not transfer ownership of the ORVA source code, brand, or intellectual property. Self-hosted licensing requires signed license claims, offline verification policy, deployment identity, expiry/grace behavior, and a documented renewal process. Do not implement a client-editable or plaintext license key as the security boundary.
+
+### Commercial price design
+Prices are configured commercially and are not hardcoded in application code. Quotes may combine recurring plan fees, additional seats/entities/storage, implementation, migration, integrations, training, dedicated infrastructure, and premium support. Taxes, currency, billing entity, payment terms and service levels are contractual and jurisdiction-specific.
+
+
+## 9. Commercial decision record — SME hybrid license
+
+**Decision status: approved product direction**
+
+- Primary customer segment: small and medium-sized businesses (SME).
+- Deployment portfolio: hybrid. Shared Cloud is the default low-friction SME offer; Dedicated Cloud and Self-hosted Enterprise are controlled upgrade paths for customers with isolation, residency, or infrastructure-control requirements.
+- Ownership: license. ORVA / LogiSource Digital retains the product, source code, trademarks, and intellectual property. Customers receive a limited contractual right to use the subscribed modules and deployment for the licensed term. No source-code or IP transfer is implied.
+
+### SME packaging principles
+
+- Keep onboarding self-service for Shared Cloud wherever possible.
+- Offer clear limits for users, legal entities, storage, included modules, and support.
+- Avoid hardcoding public prices in application logic. Store commercial prices in a controlled catalogue/quote workflow.
+- Make annual billing an option, not a requirement.
+- Sell implementation, data migration, training, integrations, and dedicated infrastructure separately where applicable.
+- Provide a controlled trial path with explicit expiry and conversion to a paid subscription.
+
+Indicative packaging for commercial validation (not application constants):
+- Starter: 5 users, 1 company, 5 GB.
+- Business: 25 users, 5 companies, 50 GB.
+- Professional: 100 users, 20 companies, 250 GB.
+- Enterprise: negotiated limits and service levels.
+
+### Platform administration boundary
+
+Platform operators are global service personnel and are not tenant members by default. Access is granted through the separate PlatformOperator identity linked to a verified user session. Tenant roles and permissions must never imply platform operator access. Provisioning and subscription changes are restricted to explicit platform roles and must create tenant audit events. Operator enrollment is an out-of-band, controlled administrative operation; there is no public self-registration or tenant-facing endpoint to grant platform roles.
+
+### Provisioning contract
+
+1. Verify the authenticated user session and platform operator role.
+2. Verify the tenant is active and the selected ProductPlan is active.
+3. Create the subscription with server-validated deployment, billing interval, currency, price, and contract period.
+4. Replace the tenant's prior effective subscription in one database transaction.
+5. Derive effective tenant module entitlements from the plan only for TRIAL or ACTIVE subscriptions.
+6. Write an audit event with operator identity, plan, deployment mode, commercial terms, and granted module keys.
+7. Tenant administrators may configure company-level settings only within the effective tenant entitlement.
+
+This initial provisioning endpoint is an internal platform operation. It is not a payment gateway integration, public signup flow, invoice issuance workflow, or infrastructure automation. Those capabilities require separate idempotent workflows and provider-specific security controls.
+
+
+## 10. SME and small-CV product strategy
+
+The primary market is Indonesian micro, small and medium businesses (UMKM), including owner-operated businesses and small CV legal entities. ORVA must optimize for a small team with limited IT capacity and straightforward business processes.
+
+### Product experience
+- Shared Cloud is the default deployment and onboarding path.
+- Setup should ask only for business name, legal form, business identity, currency, fiscal year, first administrator, and the modules needed now.
+- Use Indonesian language, IDR, Asia/Jakarta, and Indonesian date/number formats as the default for Indonesian customers, while retaining localization settings.
+- Keep navigation role-aware and show only licensed and enabled modules.
+- Prefer guided workflows, sensible defaults, searchable master data, clear document statuses, and simple approval steps.
+- Avoid enterprise-only concepts in the default SME experience. Advanced controls remain available to authorized users when needed.
+
+### Initial commercial packages
+- Starter: owner-operated or micro business, one legal entity and up to five users.
+- Business: small CV or growing UMKM, up to five legal entities and 25 users.
+- Professional: larger SME with multiple teams, up to 20 legal entities and 100 users.
+- Dedicated Cloud and Self-hosted are exceptional upgrade paths, not the default offer for small customers.
+
+Package limits are configurable catalogue data and must be enforced server-side. Prices remain quote/catalogue configuration, never code constants. Module availability reflects implemented production capability; a module must not be marketed as available merely because it appears in the product roadmap.
+
+### SME onboarding
+1. Register customer business and first administrator through a verified onboarding flow.
+2. Create the tenant and its first legal entity (CV/PT/individual business as appropriate).
+3. Assign a trial or paid subscription through trusted platform services.
+4. Provision company defaults and initial company access.
+5. Enable only the included, implemented modules.
+6. Import opening master data with validation and duplicate checks.
+7. Guide the owner through the first real transaction.
