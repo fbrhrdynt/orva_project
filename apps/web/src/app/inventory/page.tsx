@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Boxes, RefreshCw, Warehouse, Package, Info } from "lucide-react";
+import { ArrowUpRight, ArrowLeftRight, Boxes, RefreshCw, Warehouse, Package, Info } from "lucide-react";
 
 type Workspace = { companies: Array<{ id: string; code: string; name: string }> };
 type Item = { id: string; sku: string; name: string; uom: { code: string; name: string } };
