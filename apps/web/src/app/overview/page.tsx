@@ -54,6 +54,16 @@ export default function OverviewPage() {
         <Link className="erp-nav-link" href="/procurement"><ShoppingCart size={16}/>Procurement</Link>
         <Link className="erp-nav-link" href="/master-data"><Package size={16}/>Master data</Link>
         <Link className="erp-nav-link" href="/subscription"><Warehouse size={16}/>Subscription</Link>
+        <div className="erp-nav-divider" />
+        <div className="erp-nav-label erp-nav-label--group">Business modules</div>
+        <Link className="erp-nav-link" href="/procurement"><ShoppingCart size={16}/>Procurement</Link>
+        <Link className="erp-nav-link" href="/master-data"><Package size={16}/>Inventory & master data</Link>
+        <span className="erp-nav-link erp-nav-link--planned"><Truck size={16}/>Sales & CRM <small>Planned</small></span>
+        <span className="erp-nav-link erp-nav-link--planned"><ClipboardList size={16}/>Finance <small>Planned</small></span>
+        <span className="erp-nav-link erp-nav-link--planned"><Warehouse size={16}/>People & payroll <small>Planned</small></span>
+        <span className="erp-nav-link erp-nav-link--planned"><Activity size={16}/>Projects & timesheets <small>Planned</small></span>
+        <span className="erp-nav-link erp-nav-link--planned"><Package size={16}/>Assets & maintenance <small>Planned</small></span>
+        <span className="erp-nav-link erp-nav-link--planned"><ClipboardList size={16}/>Documents & reports <small>Planned</small></span>
       </nav>
       <div className="erp-sidebar-bottom"><span className="erp-avatar">OR</span><span><strong>ORVA Workspace</strong><small>Authorized user</small></span></div>
     </aside>
@@ -66,8 +76,17 @@ export default function OverviewPage() {
         {data && <>
           <section className="metric-grid">{cards.map(card => { const Icon=card.icon; return <article className="metric" key={card.title}><span>{card.title}</span><strong>{card.value}</strong><small>{card.note}</small><Icon size={17}/></article>; })}</section>
           <div className="erp-two-col">
-            <section className="erp-panel"><div className="panel-head"><div><h2>Master data</h2><p>Active records for this company</p></div></div><div className="subscription-usage"><span>Suppliers</span><strong>{data.metrics.suppliers}</strong></div><div className="subscription-usage"><span>Customers</span><strong>{data.metrics.customers}</strong></div><div className="subscription-usage"><span>Items</span><strong>{data.metrics.items}</strong></div><div className="subscription-usage"><span>Warehouses</span><strong>{data.metrics.warehouses}</strong></div></section>
-            <section className="erp-panel"><div className="panel-head"><div><h2>Procurement snapshot</h2><p>Current purchasing workload</p></div></div><div className="subscription-usage"><span>Purchase requisitions</span><strong>{data.metrics.requisitions}</strong></div><div className="subscription-usage"><span>Awaiting approval value</span><strong>{money(data.metrics.pendingPurchaseValue,data.company.currency)}</strong></div><div className="subscription-usage"><span>Total committed value</span><strong>{money(data.metrics.committedPurchaseValue,data.company.currency)}</strong></div></section>
+            <section className="erp-panel"><div className="panel-head"><div><h2>Master data</h2><p>Active records for this company</p></div></div><div className="overview-stat-grid">
+              <Link href="/master-data?type=suppliers" className="overview-stat"><span>Suppliers</span><strong>{data.metrics.suppliers}</strong><small>Supplier records</small></Link>
+              <Link href="/master-data?type=customers" className="overview-stat"><span>Customers</span><strong>{data.metrics.customers}</strong><small>Customer records</small></Link>
+              <Link href="/master-data?type=items" className="overview-stat"><span>Items</span><strong>{data.metrics.items}</strong><small>Product catalogue</small></Link>
+              <Link href="/master-data?type=warehouses" className="overview-stat"><span>Warehouses</span><strong>{data.metrics.warehouses}</strong><small>Storage locations</small></Link>
+            </div></section>
+            <section className="erp-panel"><div className="panel-head"><div><h2>Procurement snapshot</h2><p>Current purchasing workload</p></div></div><div className="overview-workload">
+              <Link href="/procurement/requisitions"><span>Purchase requisitions</span><strong>{data.metrics.requisitions}</strong><small>Open requisition register →</small></Link>
+              <div><span>Awaiting approval value</span><strong>{money(data.metrics.pendingPurchaseValue,data.company.currency)}</strong></div>
+              <div><span>Total committed value</span><strong>{money(data.metrics.committedPurchaseValue,data.company.currency)}</strong></div>
+            </div></section>
           </div>
           <section className="erp-panel"><div className="panel-head"><div><h2>Recent purchase orders</h2><p>Latest purchasing documents for {data.company.code}</p></div><Link href="/procurement">View register <ArrowUpRight size={14}/></Link></div><div className="table-scroll"><table className="erp-table"><thead><tr><th>Document</th><th>Supplier</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>{data.purchaseOrders.map(row=><tr key={row.id}><td className="record-code">{row.documentNumber}</td><td>{row.supplier.name}</td><td>{date(row.documentDate)}</td><td className="numeric">{money(Number(row.grandTotal),row.currency)}</td><td><span className="status status--neutral">{label(row.status)}</span></td></tr>)}{data.purchaseOrders.length===0&&<tr><td colSpan={5}>No purchase orders recorded yet.</td></tr>}</tbody></table></div></section>
           <section className="erp-panel"><div className="panel-head"><div><h2>Recent activity</h2><p>Audited events in the current month</p></div></div>{data.activity.length ? data.activity.map(row=><div className="activity-row" key={row.id}><time>{new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jakarta"}).format(new Date(row.occurredAt))}</time><span><strong>{label(row.action)}</strong><small>{row.entityType} · {row.entityId || "—"}</small></span><b>{row.severity}</b></div>) : <p>No recent audit events.</p>}</section>
