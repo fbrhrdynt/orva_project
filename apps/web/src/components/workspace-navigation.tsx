@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, Boxes, Building2, ChevronRight, Grid2X2, Menu, Settings2, ShieldCheck, ShoppingCart, Wallet, X } from "lucide-react";
 
 const links = [
@@ -20,7 +20,7 @@ const admin = [
 
 export default function WorkspaceNavigation() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);\n  const [workspaceName, setWorkspaceName] = useState("Workspace");\n  useEffect(() => { let active = true; fetch("/api/auth/session", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data?.tenant?.name) setWorkspaceName(data.tenant.name); }).catch(() => {}); return () => { active = false; }; }, []);
   if (pathname === "/login") return null;
   const nav = (items: typeof links) => items.map(({ label, href, icon: Icon }) => {
     const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
@@ -30,7 +30,7 @@ export default function WorkspaceNavigation() {
     <header className="orva-mobile-bar"><Link href="/" className="orva-global-brand">orva<span>.</span></Link><span className="orva-mobile-context">{links.find(x => x.href === pathname)?.label || (pathname.startsWith("/procurement") ? "Procurement" : pathname.split("/").filter(Boolean).pop()?.replaceAll("-", " ") || "Workspace")}</span><button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(v => !v)}><Menu size={21}/></button></header>
     <aside className="orva-global-sidebar">
       <Link href="/" className="orva-global-brand">orva<span>.</span></Link>
-      <div className="orva-global-workspace"><span className="orva-global-mark">O</span><span><strong>ORVA Workspace</strong><small>Business platform</small></span></div>
+      <div className="orva-global-workspace"><span className="orva-global-mark">O</span><span><strong>{workspaceName}</strong><small>ORVA workspace</small></span></div>
       <div className="orva-global-label">WORKSPACE</div><nav>{nav(links)}</nav>
       <div className="orva-global-label orva-global-label--admin">ADMINISTRATION</div><nav>{nav(admin)}</nav>
       <div className="orva-global-foot">by LogiSource Digital</div>
