@@ -48,24 +48,29 @@ export async function postStockAdjustment(context: VerifiedTenantContext, input:
   const unitCost = input.unitCost === undefined ? undefined : positive(input.unitCost, "Unit cost");
   const idempotencyKey = input.idempotencyKey?.trim() || undefined;
   if (idempotencyKey && idempotencyKey.length > 120) throw new Error("Idempotency key is too long.");
-  const entry = await db.$transaction(async tx => {
+  const result = await db.$transaction(async tx => {
     if (idempotencyKey) {
       const prior = await tx.stockLedgerEntry.findFirst({ where: { tenantId: context.tenantId, idempotencyKey } });
-      if (prior) return prior;
+      if (prior) {
+        const matches = prior.companyId === input.companyId && prior.itemId === item.id && prior.warehouseId === input.warehouseId && prior.movementType === input.movementType && prior.quantity.eq(input.movementType === "ADJUSTMENT_OUT" ? quantity.negated() : quantity) && (prior.unitCost?.eq(unitCost ?? new Prisma.Decimal(0)) ?? unitCost === undefined);
+        if (!matches) throw new Error("Idempotency key has already been used for a different stock adjustment.");
+        return { entry: prior, duplicate: true };
+      }
     }
     if (input.movementType === "ADJUSTMENT_OUT") {
       const current = await tx.stockLedgerEntry.aggregate({ where: { tenantId: context.tenantId, companyId: input.companyId, itemId: item.id, warehouseId: input.warehouseId }, _sum: { quantity: true } });
       if ((current._sum.quantity ?? new Prisma.Decimal(0)).lt(quantity)) throw new Error("Insufficient stock for this adjustment.");
     }
-    return tx.stockLedgerEntry.create({ data: {
+    const entry = await tx.stockLedgerEntry.create({ data: {
       tenantId: context.tenantId, companyId: input.companyId, itemId: item.id, warehouseId: input.warehouseId,
       movementType: input.movementType as InventoryMovementType,
       quantity: input.movementType === "ADJUSTMENT_OUT" ? quantity.negated() : quantity,
       unitCost, referenceType: "MANUAL_ADJUSTMENT", idempotencyKey, notes: input.notes?.trim() || undefined, actorUserId: context.userId,
     } });
+    return { entry, duplicate: false };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-  await writeAuditEvent(context, { action: "inventory.stock.adjusted", entityType: "StockLedgerEntry", entityId: entry.id, metadata: { itemId: item.id, warehouseId: input.warehouseId, movementType: input.movementType, quantity: quantity.toString() } });
-  return entry;
+  if (!result.duplicate) await writeAuditEvent(context, { action: "inventory.stock.adjusted", entityType: "StockLedgerEntry", entityId: result.entry.id, metadata: { itemId: item.id, warehouseId: input.warehouseId, movementType: input.movementType, quantity: quantity.toString() } });
+  return result.entry;
 }
 
 export async function transferStock(context: VerifiedTenantContext, input: { companyId: string; itemId: string; fromWarehouseId: string; toWarehouseId: string; quantity: string | number; notes?: string; idempotencyKey?: string }) {
@@ -81,7 +86,13 @@ export async function transferStock(context: VerifiedTenantContext, input: { com
   const result = await db.$transaction(async tx => {
     if (key) {
       const prior = await tx.stockLedgerEntry.findFirst({ where: { tenantId: context.tenantId, idempotencyKey: key } });
-      if (prior) return { source: prior, destination: null, duplicate: true };
+      if (prior) {
+        const matches = prior.companyId === input.companyId && prior.itemId === item.id && prior.warehouseId === input.fromWarehouseId && prior.movementType === "TRANSFER_OUT" && prior.quantity.eq(quantity.negated()) && prior.referenceType === "WAREHOUSE_TRANSFER";
+        if (!matches || !prior.referenceId) throw new Error("Idempotency key has already been used for a different stock transfer.");
+        const destination = await tx.stockLedgerEntry.findFirst({ where: { tenantId: context.tenantId, companyId: input.companyId, itemId: item.id, warehouseId: input.toWarehouseId, movementType: "TRANSFER_IN", referenceType: "WAREHOUSE_TRANSFER", referenceId: prior.referenceId, quantity } });
+        if (!destination) throw new Error("The original stock transfer is incomplete; contact an administrator.");
+        return { source: prior, destination, duplicate: true };
+      }
     }
     const current = await tx.stockLedgerEntry.aggregate({ where: { tenantId: context.tenantId, companyId: input.companyId, itemId: item.id, warehouseId: input.fromWarehouseId }, _sum: { quantity: true } });
     if ((current._sum.quantity ?? new Prisma.Decimal(0)).lt(quantity)) throw new Error("Insufficient stock in the source warehouse.");
