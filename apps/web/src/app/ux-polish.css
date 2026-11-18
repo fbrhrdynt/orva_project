@@ -134,3 +134,264 @@
  .platform-tenant span:last-child{text-align:left}
  .platform-access{padding:17px;gap:12px}
 }
+
+
+/* ORVA Experience Refresh — login, launcher, workspace shell and dashboard */
+:root {
+  --orva-navy:#1A2334;
+  --orva-ink:#172033;
+  --orva-accent:#4263D6;
+  --orva-accent-soft:#EEF2FF;
+  --orva-page:#F5F7FB;
+  --orva-surface:#FFFFFF;
+  --orva-border:#E4E9F1;
+  --orva-muted:#697586;
+  --orva-shadow:0 10px 30px rgba(20,32,55,.055);
+}
+body { background:var(--orva-page); color:var(--orva-ink); }
+button,input,select { font:inherit; }
+:focus-visible { outline:3px solid rgba(66,99,214,.28); outline-offset:2px; }
+
+/* Sign-in */
+.orva-login-page { position:relative; isolation:isolate; min-height:100vh; overflow:hidden; padding:30px clamp(20px,5vw,76px) 22px; background:radial-gradient(ellipse at 8% 12%,rgba(66,99,214,.09),transparent 34%),radial-gradient(ellipse at 94% 88%,rgba(30,145,128,.09),transparent 32%),#F7F9FC; }
+.orva-login-orb { position:absolute; z-index:-1; border:1px solid rgba(66,99,214,.09); border-radius:50%; pointer-events:none; }
+.orva-login-orb--one { width:520px;height:520px;right:-240px;top:12%;box-shadow:0 0 0 42px rgba(66,99,214,.018),0 0 0 84px rgba(66,99,214,.014); }
+.orva-login-orb--two { width:360px;height:360px;left:-220px;bottom:-180px;box-shadow:0 0 0 34px rgba(30,145,128,.025); }
+.orva-login-header { position:relative;z-index:1;max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between; }
+.orva-login-wordmark,.orva-global-brand { color:var(--orva-navy)!important;font-size:31px!important;font-weight:850!important;letter-spacing:-2.2px!important;text-decoration:none; }
+.orva-login-wordmark span,.orva-global-brand span { color:var(--orva-accent)!important; }
+.orva-login-header-note { display:flex;align-items:center;gap:8px;color:#778297;font-size:10px;font-weight:800;letter-spacing:1.2px; }
+.orva-login-header-note svg { color:var(--orva-accent); }
+.orva-login-layout { max-width:1160px;min-height:calc(100vh - 130px);margin:22px auto 10px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(400px,.8fr);align-items:center;gap:clamp(42px,8vw,120px); }
+.orva-login-story { padding:20px 0; }
+.orva-login-story-kicker { display:flex;align-items:center;gap:10px;color:#52617A;font-size:10px;font-weight:850;letter-spacing:1.6px; }
+.orva-login-story-kicker span,.orva-login-secure span { width:7px;height:7px;border-radius:50%;background:#28A27D;box-shadow:0 0 0 4px rgba(40,162,125,.12); }
+.orva-login-story h1 { margin:26px 0 18px;color:var(--orva-navy);font-size:clamp(42px,5vw,66px);line-height:1.04;letter-spacing:-3.5px;font-weight:800; }
+.orva-login-story h1 em { color:var(--orva-accent);font-style:normal; }
+.orva-login-story>p { max-width:470px;margin:0;color:#69778C;font-size:16px;line-height:1.8; }
+.orva-login-feature-list { display:grid;gap:22px;margin-top:46px; }
+.orva-login-feature-list>div { display:flex;align-items:center;gap:14px; }
+.orva-login-feature-list>div>span { display:grid;place-items:center;width:42px;height:42px;border:1px solid #DFE6F4;border-radius:12px;background:#fff;color:var(--orva-accent);box-shadow:0 4px 12px rgba(20,32,55,.035); }
+.orva-login-feature-list strong,.orva-login-feature-list small { display:block; }
+.orva-login-feature-list strong { color:#273449;font-size:13px;font-weight:750; }
+.orva-login-feature-list small { margin-top:4px;color:#8994A5;font-size:11px; }
+.orva-login-story-footer { margin-top:62px;color:#9AA4B3;font-size:10px;font-weight:700;letter-spacing:.4px; }
+.orva-login-story-footer span { padding:0 7px;color:var(--orva-accent); }
+.orva-login-card { width:100%;max-width:480px;justify-self:end;padding:34px;border:1px solid rgba(222,229,239,.95);border-radius:20px;background:rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(26,35,52,.10),0 2px 8px rgba(26,35,52,.03);backdrop-filter:blur(16px); }
+.orva-login-card-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:30px; }
+.orva-login-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--orva-accent-soft);color:var(--orva-accent); }
+.orva-login-secure { display:flex;align-items:center;gap:9px;color:#7D899A;font-size:9px;font-weight:850;letter-spacing:1.1px; }
+.orva-login-secure span { width:6px;height:6px; }
+.orva-login-kicker { color:var(--orva-accent);font-size:10px;font-weight:850;letter-spacing:1.5px; }
+.orva-login-card h2 { margin:9px 0 8px;color:var(--orva-navy);font-size:29px;letter-spacing:-1.1px;font-weight:800; }
+.orva-login-description { margin:0;color:#7A8698;font-size:12px;line-height:1.7; }
+.orva-login-form { display:grid;gap:18px;margin-top:28px; }
+.orva-login-form label { display:grid;gap:8px;color:#354258;font-size:11px;font-weight:750; }
+.orva-login-form input { width:100%;height:48px;padding:0 14px;border:1px solid #DCE3ED;border-radius:10px;background:#FBFCFE;color:#1E293B;font-size:13px;transition:border .15s,box-shadow .15s,background .15s; }
+.orva-login-form input::placeholder { color:#A1AABB; }
+.orva-login-form input:focus { outline:0;border-color:#8298E8;background:#fff;box-shadow:0 0 0 4px rgba(66,99,214,.10); }
+.orva-password-field { position:relative;display:block; }
+.orva-password-field input { padding-right:48px; }
+.orva-password-field button { position:absolute;top:5px;right:6px;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#8290A4;cursor:pointer; }
+.orva-password-field button:hover { background:#F0F3FA;color:var(--orva-accent); }
+.orva-field-hint { color:#98A2B3;font-size:10px;font-weight:500; }
+.orva-login-form>button { min-height:50px;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:3px;border:0;border-radius:10px;background:linear-gradient(110deg,#3658C8,#4D6DDB);color:white;font-size:13px;font-weight:800;box-shadow:0 8px 18px rgba(66,99,214,.20);cursor:pointer;transition:transform .15s,box-shadow .15s,filter .15s; }
+.orva-login-form>button:hover:not(:disabled) { transform:translateY(-1px);box-shadow:0 12px 24px rgba(66,99,214,.25);filter:brightness(1.03); }
+.orva-login-form>button:disabled { opacity:.7;cursor:wait; }
+.orva-login-error { margin:0;padding:11px 12px;border:1px solid #F2CDCD;border-radius:9px;background:#FFF5F5;color:#B42318;font-size:11px;line-height:1.5; }
+.orva-login-assurance { display:flex;align-items:center;gap:9px;margin-top:22px;padding:12px;border:1px solid #E6ECF5;border-radius:9px;background:#F7F9FC;color:#7B8798;font-size:10px;line-height:1.5; }
+.orva-login-assurance svg { flex:0 0 auto;color:#2A9A77; }
+.orva-login-footnote { margin:18px 0 0;color:#9AA4B3;font-size:10px;text-align:center; }
+.orva-login-spinner { width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:white;border-radius:50%;animation:orva-spin .7s linear infinite; }
+@keyframes orva-spin { to { transform:rotate(360deg); } }
+.orva-login-footer { max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;gap:12px;color:#A0A9B7;font-size:10px; }
+
+/* Authenticated application shell */
+:root { --orva-global-nav:264px; }
+.orva-global-sidebar { width:var(--orva-global-nav);padding:25px 17px 18px;background:linear-gradient(180deg,#172238 0%,#1A2334 100%);border-right:0;color:#fff; }
+.orva-global-brand { margin:0 0 28px 10px;color:#fff!important;font-size:30px!important; }
+.orva-global-brand span { color:#8EA4FF!important; }
+.orva-global-workspace { padding:12px 10px;border:1px solid rgba(255,255,255,.11);border-radius:12px;background:rgba(255,255,255,.055); }
+.orva-global-mark { width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,#5576E0,#3554B6); }
+.orva-global-workspace strong { color:#F5F7FC;font-size:11px; }
+.orva-global-workspace small { color:#9BA8BC;font-size:10px; }
+.orva-global-label { margin:29px 10px 10px;color:#8190A8;font-size:9px;letter-spacing:1.4px; }
+.orva-global-link { min-height:42px;padding:0 11px;border-radius:9px;color:#B6C0D0;font-size:11px;font-weight:650; }
+.orva-global-link svg { color:#8998B1; }
+.orva-global-link:hover { background:rgba(255,255,255,.07);color:#fff; }
+.orva-global-link.is-active { background:rgba(105,132,226,.19);color:#fff;box-shadow:inset 3px 0 #8EA4FF; }
+.orva-global-link.is-active svg { color:#A9BAFF; }
+.orva-global-foot { padding:15px 10px 0;border-color:rgba(255,255,255,.10);color:#77869E; }
+.orva-mobile-bar { background:rgba(23,34,56,.97);border-bottom-color:rgba(255,255,255,.08); }
+.orva-mobile-bar .orva-global-brand { color:white!important; }
+.orva-mobile-context { color:#D5DCE8; }
+.orva-mobile-bar button,.orva-drawer-head button { border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff; }
+.orva-global-drawer { background:#172238; }
+.orva-global-drawer .orva-global-label { color:#8190A8; }
+.orva-global-drawer .orva-global-link { color:#B6C0D0; }
+.orva-global-drawer .orva-global-link.is-active { color:#fff; }
+.orva-global-drawer .orva-global-foot { color:#77869E; }
+body:has(.orva-global-sidebar) { background:#F5F7FB; }
+body:has(.orva-global-sidebar) .content,body:has(.orva-global-sidebar) .erp-main { background:#F5F7FB; }
+body:has(.orva-global-sidebar) .topbar,body:has(.orva-global-sidebar) .erp-topbar { height:66px;position:sticky;top:0;z-index:30;padding:0 34px;border-bottom:1px solid #E7EBF2;background:rgba(255,255,255,.91);backdrop-filter:blur(14px); }
+body:has(.orva-global-sidebar) .page { max-width:1480px;padding:34px 38px 28px; }
+body:has(.orva-global-sidebar) .erp-content { max-width:1480px;padding:34px 38px 28px; }
+@media(max-width:760px) {
+  :root { --orva-global-nav:0px; }
+  body:has(.orva-global-sidebar) { padding-top:60px; }
+  .orva-mobile-bar { height:60px;padding:0 18px; }
+  .orva-global-drawer { background:#172238; }
+  body:has(.orva-global-sidebar) .topbar,body:has(.orva-global-sidebar) .erp-topbar { height:54px;padding:0 16px; }
+  body:has(.orva-global-sidebar) .page,body:has(.orva-global-sidebar) .erp-content { padding:24px 17px 30px; }
+}
+
+/* Application launcher */
+.app-shell { min-height:100vh;background:var(--orva-page); }
+.app-shell .content { min-width:0; }
+.app-shell .page-heading { align-items:flex-end;margin-bottom:24px; }
+.app-shell .page-heading h1 { color:var(--orva-navy);font-size:31px;letter-spacing:-1.2px;font-weight:800; }
+.app-shell .page-heading p { color:#788599;font-size:13px; }
+.app-shell .eyebrow { color:var(--orva-accent);font-size:9px;letter-spacing:1.5px; }
+.app-shell .heading-meta { padding:10px 13px;border:1px solid var(--orva-border);border-radius:10px;background:#fff; }
+.app-shell .heading-meta .meta-label { color:#99A3B2;font-size:8px;letter-spacing:1.2px; }
+.app-shell .heading-meta strong { color:#47546A;font-size:11px; }
+.app-shell .workspace-welcome { padding:22px 24px;border:1px solid #E2E8F3;border-radius:15px;background:linear-gradient(115deg,#fff 0%,#F4F6FF 100%);box-shadow:var(--orva-shadow); }
+.app-shell .workspace-welcome .welcome-kicker { color:var(--orva-accent); }
+.app-shell .workspace-welcome strong { color:var(--orva-navy);font-size:18px; }
+.app-shell .welcome-stat strong { color:var(--orva-accent);font-size:28px; }
+.app-shell .search-row { display:flex;gap:12px;margin:24px 0 13px; }
+.app-shell .search-box,.app-shell .filter-control { min-height:48px;border:1px solid #E0E6F0;border-radius:11px;background:#fff;box-shadow:0 2px 5px rgba(20,32,55,.025); }
+.app-shell .search-box { flex:1; }
+.app-shell .search-box:focus-within { border-color:#A9B8EE;box-shadow:0 0 0 4px rgba(66,99,214,.08); }
+.app-shell .search-box input { font-size:12px; }
+.app-shell .search-box kbd { border:1px solid #E7EAF1;border-radius:6px;background:#F8F9FC;color:#9AA4B3;font-size:9px; }
+.app-shell .filter-control { min-width:190px; }
+.app-shell .results-line { margin-bottom:23px;color:#8B96A7;font-size:10px; }
+.app-shell .application-section { margin:25px 0 30px; }
+.app-shell .section-heading { margin-bottom:13px; }
+.app-shell .section-heading h2 { color:#28364D;font-size:14px;font-weight:800;letter-spacing:-.2px; }
+.app-shell .section-heading span { color:#8A95A6;font-size:10px; }
+.app-shell .section-count { display:grid;place-items:center;min-width:31px;height:26px;padding:0 7px;border:1px solid #E3E8F2;border-radius:8px;background:#fff;color:#77849A!important;font-size:10px;font-weight:800; }
+.app-shell .application-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px; }
+.app-shell .application-item { min-height:114px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:12px;padding:17px;border:1px solid #E3E8F1;border-radius:13px;background:#fff;box-shadow:0 3px 10px rgba(25,42,65,.025);text-decoration:none; }
+.app-shell .application-item:hover { transform:translateY(-3px);border-color:#C8D3F2;box-shadow:0 12px 24px rgba(32,51,95,.08); }
+.app-shell .application-icon { width:42px;height:42px;border-radius:12px;background:#EEF2FF!important;color:var(--orva-accent)!important;border:1px solid #E0E7FF; }
+.app-shell .application-copy h3 { color:#26344A;font-size:12px;font-weight:800; }
+.app-shell .application-copy p { margin-top:5px;color:#8A95A6;font-size:10px;line-height:1.5; }
+.app-shell .application-status { grid-column:2;justify-self:start;padding:4px 7px;border-radius:6px;font-size:8px;font-weight:800; }
+.app-shell .application-arrow { grid-column:3;grid-row:1;color:#A0AABD; }
+.app-shell .application-item--planned { background:#FAFBFD; }
+.app-shell .application-item--planned .application-icon { background:#F1F3F7!important;color:#929BAB!important; }
+.app-shell .application-status.is-available { color:#197A59;background:#EDF8F2;border-color:#D7EEE2; }
+.app-shell .application-status.is-planned { color:#7C8798;background:#F1F3F7;border-color:#E5E9EF; }
+.app-shell .application-status.is-locked { color:#99651B;background:#FFF7E8;border-color:#F1E1BF; }
+.app-shell .empty-state { border:1px dashed #D6DDEA;border-radius:14px;background:#fff; }
+.app-shell .page-footer { border-top:1px solid #E5EAF2;color:#9AA4B3; }
+@media(max-width:1000px) { .app-shell .application-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) {
+ .app-shell .page-heading { align-items:flex-start;flex-direction:column;gap:12px; }
+ .app-shell .page-heading h1 { font-size:27px; }
+ .app-shell .workspace-welcome { gap:15px; }
+ .app-shell .search-row { flex-direction:column; }
+ .app-shell .filter-control { min-width:0; }
+ .app-shell .application-grid { grid-template-columns:1fr;gap:9px; }
+ .app-shell .application-item { min-height:88px;padding:13px; }
+ .app-shell .application-copy p { max-width:42ch; }
+ .app-shell .page-footer { flex-direction:column;gap:7px; }
+}
+
+/* Executive overview dashboard */
+.erp-shell { min-height:100vh;background:#F5F7FB; }
+.erp-page-head { align-items:flex-end;margin-bottom:24px; }
+.erp-page-head h1 { color:var(--orva-navy);font-size:31px;letter-spacing:-1.1px;font-weight:800; }
+.erp-page-head p { color:#7B8798;font-size:12px; }
+.erp-kicker { color:var(--orva-accent);font-size:9px;font-weight:850;letter-spacing:1.5px; }
+.erp-button { min-height:40px;border-radius:9px;font-size:11px;font-weight:750; }
+.erp-button--secondary { border:1px solid #DDE4EF;background:#fff;color:#344258; }
+.metric-grid { grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:17px; }
+.metric { position:relative;min-height:142px;padding:19px;border:1px solid #E3E8F1;border-radius:14px;background:#fff;box-shadow:0 3px 10px rgba(25,42,65,.025); }
+.metric>span { color:#778397;font-size:10px;font-weight:750; }
+.metric>strong { color:#1C2940;font-size:24px;letter-spacing:-.7px;font-weight:800; }
+.metric>small { color:#9AA4B3;font-size:9px; }
+.metric>svg { top:17px;right:17px;width:32px;height:32px;padding:8px;border-radius:9px;background:#EEF2FF;color:var(--orva-accent); }
+.erp-two-col { gap:14px;margin-bottom:15px; }
+.erp-panel { border:1px solid #E3E8F1;border-radius:14px;background:#fff;box-shadow:0 3px 10px rgba(25,42,65,.025); }
+.panel-head { min-height:66px;padding:17px 19px;border-bottom:1px solid #EEF1F5; }
+.panel-head h2 { color:#27354B;font-size:13px;font-weight:800; }
+.panel-head p { margin-top:4px;color:#98A2B2;font-size:10px; }
+.panel-head>a { color:var(--orva-accent);font-size:10px;font-weight:750; }
+.overview-stat-grid .overview-stat { padding:16px 18px; }
+.overview-stat-grid .overview-stat span { font-size:10px; }
+.overview-stat-grid .overview-stat strong { font-size:20px; }
+.overview-workload { padding:5px 18px; }
+.overview-workload>div,.overview-workload>a { min-height:64px; }
+.overview-workload strong { font-size:14px; }
+.table-scroll { overflow-x:auto; }
+.erp-table { min-width:650px; }
+.erp-table th { background:#F8FAFD;color:#7B8798;font-size:9px;font-weight:800;letter-spacing:.7px; }
+.erp-table td { color:#47546A;font-size:10px; }
+.erp-table .record-code { color:#3859C7;font-weight:750; }
+.erp-table tbody tr:hover { background:#FAFBFE; }
+.activity-row { min-height:58px;padding:12px 19px;border-bottom:1px solid #F0F2F6; }
+.activity-row time { color:#98A2B3;font-size:9px; }
+.activity-row strong { color:#344258;font-size:10px; }
+.activity-row small { color:#98A2B3;font-size:9px; }
+.erp-footer { border-top:1px solid #E5EAF2;color:#9AA4B3;font-size:9px; }
+@media(max-width:1050px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) {
+ .erp-page-head { align-items:flex-start;flex-direction:column;gap:14px; }
+ .erp-page-head h1 { font-size:26px; }
+ .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+ .metric { min-height:125px;padding:14px; }
+ .metric>strong { font-size:19px;overflow-wrap:anywhere; }
+ .metric>svg { top:12px;right:12px; }
+ .erp-two-col { grid-template-columns:1fr; }
+ .erp-panel { border-radius:12px; }
+ .panel-head { padding:14px; }
+ .erp-footer { flex-direction:column;gap:6px; }
+}
+
+
+/* Global workspace profile and responsive drawer */
+.orva-global-sidebar { overflow-y:auto;overscroll-behavior:contain; }
+.orva-global-sidebar-bottom { margin-top:auto; }
+.orva-global-help { display:flex;align-items:center;gap:9px;min-height:37px;padding:0 10px;color:#8795AB;font-size:10px;text-decoration:none;border-radius:8px; }
+.orva-global-help:hover { background:rgba(255,255,255,.06);color:#E7ECF5; }
+.orva-global-profile { display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 8px;border:1px solid rgba(255,255,255,.10);border-radius:11px;background:rgba(255,255,255,.045); }
+.orva-global-avatar { display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:10px;background:linear-gradient(145deg,#6684E6,#3E5FC8);color:#fff;font-size:10px;font-weight:850; }
+.orva-global-profile-copy { display:grid;gap:3px;min-width:0;flex:1; }
+.orva-global-profile-copy strong { overflow:hidden;color:#EEF2FA;font-size:10px;text-overflow:ellipsis;white-space:nowrap; }
+.orva-global-profile-copy small { overflow:hidden;color:#8290A8;font-size:9px;text-overflow:ellipsis;white-space:nowrap; }
+.orva-global-profile>svg { color:#7D8CA5; }
+.orva-global-sidebar-bottom .orva-global-foot { margin-top:12px; }
+.orva-global-drawer .orva-global-sidebar-bottom { margin-top:auto; }
+.orva-global-drawer .orva-global-profile { border-color:rgba(255,255,255,.12); }
+.orva-global-drawer .orva-global-help { color:#A5B1C4; }
+@media(max-width:760px) {
+ .orva-global-drawer { overflow-y:auto; }
+ .orva-global-drawer .orva-global-sidebar-bottom { margin-top:auto;padding-top:20px; }
+}
+@media(max-width:900px) {
+ .orva-login-layout { grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);gap:36px; }
+ .orva-login-story h1 { font-size:48px; }
+}
+@media(max-width:700px) {
+ .orva-login-page { padding:22px 16px 18px; }
+ .orva-login-header { padding:0 3px; }
+ .orva-login-header-note { font-size:8px;letter-spacing:.8px; }
+ .orva-login-layout { min-height:auto;grid-template-columns:minmax(0,1fr);gap:22px;margin:34px auto 28px; }
+ .orva-login-story { padding:8px 3px 0; }
+ .orva-login-story h1 { margin:17px 0 10px;font-size:38px;letter-spacing:-2px; }
+ .orva-login-story>p { max-width:540px;font-size:12px;line-height:1.65; }
+ .orva-login-feature-list { display:none; }
+ .orva-login-story-footer { display:none; }
+ .orva-login-card { max-width:none;justify-self:stretch;padding:23px 20px;border-radius:16px; }
+ .orva-login-card-top { margin-bottom:22px; }
+ .orva-login-card h2 { font-size:25px; }
+ .orva-login-form { gap:15px;margin-top:22px; }
+ .orva-login-form input { height:47px; }
+ .orva-login-footer { flex-wrap:wrap;justify-content:center;font-size:9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ *,*::before,*::after { scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important; }
+}

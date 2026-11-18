@@ -42,6 +42,21 @@ export default function PlatformAdminPage() {
 
   useEffect(() => { void load(); }, []);
 
+  async function setTenantStatus(tenant: Tenant) {
+    const archive = tenant.status !== "ARCHIVED";
+    const action = archive ? "ARCHIVE" : "RESTORE";
+    const message = archive ? `Arsipkan workspace ${tenant.slug}? Pengguna tenant tidak dapat login sampai workspace dipulihkan. Data bisnis tidak dihapus.` : `Pulihkan workspace ${tenant.slug}?`;
+    if (!window.confirm(message)) return;
+    setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/platform/tenants/${encodeURIComponent(tenant.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Perubahan status workspace gagal.");
+      setNotice(archive ? "Workspace berhasil diarsipkan. Data tetap tersimpan." : "Workspace berhasil dipulihkan.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Perubahan status workspace gagal."); }
+  }
+
   async function provision(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError(""); setNotice("");
     try {
@@ -60,7 +75,7 @@ export default function PlatformAdminPage() {
     {forbidden ? <section className="platform-access"><span><ShieldCheck size={25}/></span><div><h2>Akses Platform Operator diperlukan</h2><p>Halaman ini khusus administrator internal ORVA. Akun yang sedang digunakan belum memiliki role Platform Operator. Ini bukan berarti data tenant kosong.</p><p>Minta administrator platform memberikan role yang sesuai. Setelah role diberikan, muat ulang halaman ini.</p></div></section> : <>
       {error && <div role="alert" className="platform-alert">{error}</div>}{notice && <div role="status" className="platform-notice">{notice}</div>}
       <section className="platform-metrics"><article><span><Building2 size={16}/> Customer tenants</span><strong>{loading ? "—" : tenants.length}</strong><small>Tenant terdaftar di platform</small></article><article><span><Boxes size={16}/> Product plans</span><strong>{loading ? "—" : plans.length}</strong><small>Paket produk yang tersedia</small></article><article><span><Users size={16}/> Deployment options</span><strong>3</strong><small>Shared · Dedicated · Self-hosted</small></article></section>
-      <section className="platform-grid"><div className="platform-panel"><div className="platform-panel-head"><div><h2>Customer tenants</h2><p>Tenant dan subscription terakhir</p></div><span>{tenants.length} tenants</span></div>{loading ? <p className="platform-empty">Memuat data tenant…</p> : tenants.length ? tenants.map(t => { const sub=t.subscriptions[0]; return <button key={t.id} className={"platform-tenant"+(tenantId===t.id?" is-selected":"")} onClick={()=>setTenantId(t.id)}><span><b>{t.name}</b><small>{t.slug} · {t._count.memberships} users · {t._count.companies} companies</small></span><span><b>{sub?.plan.name ?? "No plan"}</b><small>{sub?.status ?? t.status}</small></span></button>; }) : <p className="platform-empty">Belum ada tenant pelanggan terdaftar.</p>}</div>
+      <section className="platform-grid"><div className="platform-panel"><div className="platform-panel-head"><div><h2>Customer tenants</h2><p>Tenant dan subscription terakhir</p></div><span>{tenants.length} tenants</span></div>{loading ? <p className="platform-empty">Memuat data tenant…</p> : tenants.length ? tenants.map(t => { const sub=t.subscriptions[0]; return <div key={t.id} className={"platform-tenant"+(tenantId===t.id?" is-selected":"")}><button type="button" className="platform-tenant-main" onClick={()=>setTenantId(t.id)}><span><b>{t.name}</b><small>{t.slug} · {t._count.memberships} users · {t._count.companies} companies</small></span><span><b>{sub?.plan.name ?? "No plan"}</b><small>{sub?.status ?? t.status}</small></span></button><span className="platform-tenant-actions"><small>{t.status}</small><button type="button" disabled={t.slug === "febroherdyanto-admin"} onClick={() => void setTenantStatus(t)}>{t.status === "ARCHIVED" ? "Restore" : "Archive"}</button></span></div>; }) : <p className="platform-empty">Belum ada tenant pelanggan terdaftar.</p>}</div>
         <form onSubmit={provision} className="platform-panel platform-form"><div className="platform-panel-head"><div><h2>Provision subscription</h2><p>Menetapkan paket dan masa berlaku subscription tenant.</p></div></div>
           <label>Customer tenant<select required value={tenantId} onChange={e=>setTenantId(e.target.value)} className={inputClass}><option value="">Pilih tenant</option>{tenants.map(t=><option key={t.id} value={t.id}>{t.name} ({t.slug})</option>)}</select></label>
           <label>Product plan<select required value={planId} onChange={e=>setPlanId(e.target.value)} className={inputClass}><option value="">Pilih paket</option>{plans.map(p=><option key={p.id} value={p.id}>{p.name} · {p.maxUsers ?? "Unlimited"} users</option>)}</select></label>
