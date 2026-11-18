@@ -20,7 +20,9 @@ const admin = [
 
 export default function WorkspaceNavigation() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);\n  const [workspaceName, setWorkspaceName] = useState("Workspace");\n  useEffect(() => { let active = true; fetch("/api/auth/session", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data?.tenant?.name) setWorkspaceName(data.tenant.name); }).catch(() => {}); return () => { active = false; }; }, []);
+  const [open, setOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("Workspace");
+  useEffect(() => { let active = true; fetch("/api/auth/session", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data?.tenant?.name) setWorkspaceName(data.tenant.name); }).catch(() => {}); return () => { active = false; }; }, []);
   if (pathname === "/login") return null;
   const nav = (items: typeof links) => items.map(({ label, href, icon: Icon }) => {
     const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
