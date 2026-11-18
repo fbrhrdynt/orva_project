@@ -22,8 +22,24 @@ export default function WorkspaceNavigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("Workspace");
-  useEffect(() => { let active = true; fetch("/api/auth/session", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (active && data?.tenant?.name) setWorkspaceName(data.tenant.name); }).catch(() => {}); return () => { active = false; }; }, []);
-  if (pathname === "/login") return null;
+  const [authenticated, setAuthenticated] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!active) return;
+        if (data?.authenticated && data?.tenant?.name) {
+          setWorkspaceName(data.tenant.name);
+          setAuthenticated(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setSessionChecked(true); });
+    return () => { active = false; };
+  }, []);
+  if (pathname === "/login" || !sessionChecked || !authenticated) return null;
   const nav = (items: typeof links) => items.map(({ label, href, icon: Icon }) => {
     const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
     return <Link key={href} href={href} onClick={() => setOpen(false)} className={"orva-global-link" + (active ? " is-active" : "")} aria-current={active ? "page" : undefined}><Icon size={17}/><span>{label}</span>{active && <ChevronRight className="orva-nav-chevron" size={14}/>}</Link>;
