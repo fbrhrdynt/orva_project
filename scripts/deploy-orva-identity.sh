@@ -79,6 +79,10 @@ else
 fi
 OWNER_COUNT="$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT count(*) FROM core.users WHERE is_platform_owner=true AND status='active'")"
 [[ "$OWNER_COUNT" -ge 1 ]] || { echo "Tidak ditemukan ORVA Owner aktif"; exit 1; }
+# Re-run idempotent CRM seed after the first owner exists.
+export PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/003_create_crm_records.sql"
+unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
 echo "[7/9] Permission dan restart service"
 chown -R orva:orva "$APP_DIR"
