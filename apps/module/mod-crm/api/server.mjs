@@ -2,156 +2,41 @@ import { Pool } from 'pg';
 import { verifyAccessToken } from './auth.mjs';
 
 const pool = new Pool({
-  host: process.env.PGHOST || '127.0.0.1',
-  port: Number(process.env.PGPORT || 5432),
-  database: process.env.PGDATABASE || 'orva',
-  user: process.env.PGUSER || 'orva_app',
-  password: process.env.PGPASSWORD_B64 ? Buffer.from(process.env.PGPASSWORD_B64, 'base64').toString('utf8') : process.env.PGPASSWORD,
-  max: Number(process.env.PGPOOL_MAX || 10),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  application_name: 'orva-crm-api'
+  host: process.env.PGHOST || '127.0.0.1', port: Number(process.env.PGPORT || 5432),
+  database: process.env.PGDATABASE || 'orva', user: process.env.PGUSER || 'orva_app',
+  password: process.env.PGPASSWORD_B64 ? Buffer.from(process.env.PGPASSWORD_B64,'base64').toString('utf8') : process.env.PGPASSWORD,
+  max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000, application_name: 'orva-crm-api'
 });
-
-const send = (res, status, body) => {
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff'
-  });
-  res.end(JSON.stringify(body));
-};
-
-async function readJson(req) {
-  const chunks = [];
-  let length = 0;
-  for await (const chunk of req) {
-    length += chunk.length;
-    if (length > 1024 * 1024) throw Object.assign(new Error('Payload too large'), { status: 413 });
-    chunks.push(chunk);
-  }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch {
-    throw Object.assign(new Error('Invalid JSON body'), { status: 400 });
-  }
+const TYPES = new Set(['leads','customers','contacts','opportunities','activities','lead_sources','pipeline_stages','activity_types','lost_reasons','sales_teams']);
+const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
+async function body(req){let n=0,chunks=[];for await(const c of req){n+=c.length;if(n>65536)throw Object.assign(new Error('Payload too large'),{status:413});chunks.push(c);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw Object.assign(new Error('Invalid JSON'),{status:400});}}
+function token(req){const b=(req.headers.authorization||'').match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];const c=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('orva_session='));return b||(c?decodeURIComponent(c.slice(13)):null);}
+async function session(req){const t=token(req);if(!t)return null;let claims;try{claims=verifyAccessToken(t,process.env.ORVA_AUTH_SECRET);}catch{return null;}const q=await pool.query("SELECT u.id,u.is_platform_owner,u.status user_status,m.organization_id,m.status membership_status,o.status organization_status FROM core.users u JOIN core.memberships m ON m.user_id=u.id JOIN core.organizations o ON o.id=m.organization_id WHERE u.id=$1 AND m.organization_id=$2 LIMIT 1",[claims.sub,claims.organization_id]);const s=q.rows[0];if(!s||s.user_status!=='active'||s.membership_status!=='active'||s.organization_status!=='active')return null;const access=await pool.query("SELECT 1 FROM core.organization_modules om LEFT JOIN core.user_module_access a ON a.organization_id=om.organization_id AND a.module_key=om.module_key AND a.user_id=$2 WHERE om.organization_id=$1 AND om.module_key='crm' AND om.enabled=true AND ($3=true OR COALESCE(a.can_access,false)=true)",[s.organization_id,s.id,s.is_platform_owner]);return access.rowCount?{...s,claims}:null;}
+async function readRecords(req,res,s,url){
+ const type=url.searchParams.get('entity');if(!TYPES.has(type))return send(res,400,{error:'Invalid CRM entity'});
+ const q=url.searchParams.get('q')?.trim().slice(0,120)||'';
+ const result=await pool.query(`SELECT id,record_type,data,created_at,updated_at FROM crm.records WHERE organization_id=$1 AND record_type=$2 AND ($3='' OR data::text ILIKE '%'||$3||'%') ORDER BY created_at DESC LIMIT 500`,[s.organization_id,type,q]);
+ send(res,200,{data:result.rows});
 }
-
-function authorize(claims, permission, moduleGranted = false) {
-  if (!moduleGranted && !claims.permissions.includes(permission) && !claims.permissions.includes('crm:*') && !claims.permissions.includes('*')) {
-    throw Object.assign(new Error('Forbidden'), { status: 403 });
-  }
+export async function handleCrmApi(req,res,pathname){
+ if(!pathname.startsWith('/api/crm/'))return false;
+ const url=new URL(req.url,'http://orva.local');
+ if(pathname==='/api/crm/health'&&req.method==='GET'){try{await pool.query('SELECT 1');send(res,200,{status:'ok',module:'crm',database:'connected'});}catch{send(res,503,{error:'Database unavailable'});}return true;}
+ if(pathname==='/api/crm/records'){
+  const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
+  try{
+   if(req.method==='GET'){await readRecords(req,res,s,url);return true;}
+   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);send(res,201,{data:r.rows[0]});return true;}
+  }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
+ }
+ const m=pathname.match(/^\/api\/crm\/records\/([0-9a-f-]{36})$/i);
+ if(m&&['PUT','DELETE'].includes(req.method)){
+  const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
+  try{if(req.method==='DELETE'){const r=await pool.query('DELETE FROM crm.records WHERE id=$1 AND organization_id=$2 RETURNING id',[m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{ok:true});return true;}
+   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{data:r.rows[0]});return true;
+  }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
+ }
+ if(pathname==='/api/crm/leads'&&['GET','POST'].includes(req.method)){send(res,410,{error:'Use /api/crm/records?entity=leads'});return true;}
+ send(res,404,{error:'Endpoint not found'});return true;
 }
-
-export async function handleCrmApi(req, res, pathname) {
-  if (!pathname.startsWith('/api/crm/')) return false;
-
-  if (pathname === '/api/crm/health' && req.method === 'GET') {
-    try {
-      await pool.query('SELECT 1');
-      send(res, 200, { status: 'ok', module: 'crm', database: 'connected' });
-    } catch (error) {
-      console.error('CRM database health check failed:', error.message);
-      send(res, 503, { error: 'Database unavailable' });
-    }
-    return true;
-  }
-
-  if (pathname !== '/api/crm/leads' || !['GET', 'POST'].includes(req.method)) {
-    send(res, 404, { error: 'Endpoint not found' });
-    return true;
-  }
-
-  const bearer = (req.headers.authorization || '').match(/^Bearer ([A-Za-z0-9._-]+)$/);
-  const cookie = (req.headers.cookie || '').split(';').map(v => v.trim()).find(v => v.startsWith('orva_session='));
-  const token = bearer?.[1] || (cookie ? decodeURIComponent(cookie.slice('orva_session='.length)) : null);
-  if (!token) {
-    send(res, 401, { error: 'Authentication required' });
-    return true;
-  }
-
-  let claims;
-  try {
-    claims = verifyAccessToken(token, process.env.ORVA_AUTH_SECRET);
-  } catch {
-    send(res, 401, { error: 'Invalid or expired access token' });
-    return true;
-  }
-
-  try {
-    const access = await pool.query(
-      `SELECT 1
-         FROM core.memberships m
-         JOIN core.organizations o ON o.id = m.organization_id
-         JOIN core.organization_modules om ON om.organization_id = m.organization_id
-        WHERE m.user_id = $1 AND m.organization_id = $2
-          AND m.status = 'active' AND o.status = 'active'
-          AND om.module_key = 'crm' AND om.enabled = true
-          AND ($3 = true OR EXISTS (
-            SELECT 1 FROM core.user_module_access a
-             WHERE a.user_id = m.user_id AND a.organization_id = m.organization_id
-               AND a.module_key = 'crm' AND a.can_access = true
-          ))
-        LIMIT 1`,
-      [claims.sub, claims.organization_id, claims.is_platform_owner === true]
-    );
-    if (!access.rowCount) {
-      send(res, 403, { error: 'CRM access is not assigned to this account' });
-      return true;
-    }
-
-    if (req.method === 'GET') {
-      authorize(claims, 'crm.leads:read', true);
-      const result = await pool.query(
-        `SELECT id, organization_id, name, company, email, phone, source, status,
-                assigned_to, created_at, updated_at
-           FROM crm.leads
-          WHERE organization_id = $1
-          ORDER BY created_at DESC
-          LIMIT 200`,
-        [claims.organization_id]
-      );
-      send(res, 200, { data: result.rows });
-      return true;
-    }
-
-    authorize(claims, 'crm.leads:create', true);
-    const body = await readJson(req);
-    const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name || name.length > 160) {
-      send(res, 422, { error: 'name is required (max 160 characters)' });
-      return true;
-    }
-
-    const result = await pool.query(
-      `INSERT INTO crm.leads
-        (organization_id, name, company, email, phone, source, created_by, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
-       RETURNING id, organization_id, name, company, email, phone, source, status,
-                 assigned_to, created_at, updated_at`,
-      [
-        claims.organization_id,
-        name,
-        typeof body.company === 'string' ? body.company.trim().slice(0, 160) : null,
-        typeof body.email === 'string' ? body.email.trim().slice(0, 254) : null,
-        typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : null,
-        typeof body.source === 'string' ? body.source.trim().slice(0, 80) : null,
-        claims.sub
-      ]
-    );
-    send(res, 201, { data: result.rows[0] });
-    return true;
-  } catch (error) {
-    if (error.status) {
-      send(res, error.status, { error: error.message });
-      return true;
-    }
-    console.error('CRM API request failed:', error);
-    send(res, 500, { error: 'Internal server error' });
-    return true;
-  }
-}
-
-export async function closeCrmPool() {
-  await pool.end();
-}
+export async function closeCrmPool(){await pool.end();}
