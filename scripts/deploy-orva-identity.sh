@@ -64,6 +64,8 @@ node --check api/identity.mjs
 node --check api/server.mjs
 node --check "$APP_DIR/apps/web/server.mjs"
 node --check "$APP_DIR/scripts/bootstrap-orva-admin.mjs"
+awk 'BEGIN { inside=0 } /<script>/ { inside=1; next } /<\\/script>/ { inside=0 } inside { print }' "$APP_DIR/apps/module/mod-crm/public/index.html" > /tmp/orva-crm-inline.js
+node --check /tmp/orva-crm-inline.js
 echo "[5/9] Jalankan migration Identity dan CRM"
 export PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/002_create_core_identity.sql"
