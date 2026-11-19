@@ -70,6 +70,17 @@ async function readRecords(req,res,s,url){
  const total=count.rows[0].total;
  send(res,200,{data:rows.rows,pagination:{page,limit,total,total_pages:Math.ceil(total/limit)}});
 }
+async function logEvent(db,{organizationId,recordId,recordType,eventType,summary,payload={},actorId}){
+ await db.query('INSERT INTO crm.activity_events(organization_id,record_id,record_type,event_type,summary,payload,actor_id) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)',[organizationId,recordId,recordType,eventType,summary,JSON.stringify(payload),actorId||null]);
+}
+async function readTimeline(req,res,s,url){
+ const id=url.searchParams.get('record_id')||'';
+ if(!/^[0-9a-f-]{36}$/i.test(id))return send(res,400,{error:'record_id tidak valid.'});
+ const exists=await pool.query('SELECT 1 FROM crm.records WHERE id=$1 AND organization_id=$2',[id,s.organization_id]);
+ if(!exists.rowCount)return send(res,404,{error:'Record tidak ditemukan.'});
+ const r=await pool.query('SELECT e.id,e.record_type,e.event_type,e.summary,e.payload,e.created_at,u.full_name AS actor_name FROM crm.activity_events e LEFT JOIN core.users u ON u.id=e.actor_id WHERE e.organization_id=$1 AND e.record_id=$2 ORDER BY e.created_at DESC LIMIT 100',[s.organization_id,id]);
+ send(res,200,{data:r.rows});
+}
 async function convertLead(req,res,s,leadId){
  const client=await pool.connect();
  try{
@@ -89,6 +100,9 @@ async function convertLead(req,res,s,leadId){
   }
   const converted={...data,status:'Converted',converted_customer_id:customer.rows[0].id,converted_contact_id:contact?.rows[0]?.id||null,converted_at:new Date().toISOString(),converted_by:s.id};
   await client.query("UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4",[JSON.stringify(converted),s.id,leadId,s.organization_id]);
+  await logEvent(client,{organizationId:s.organization_id,recordId:leadId,recordType:'leads',eventType:'converted',summary:'Lead dikonversi menjadi Customer dan Contact',payload:{customer_id:customer.rows[0].id,contact_id:contact?.rows[0]?.id||null},actorId:s.id});
+  await logEvent(client,{organizationId:s.organization_id,recordId:customer.rows[0].id,recordType:'customers',eventType:'created_from_lead',summary:'Customer dibuat dari Lead',payload:{lead_id:leadId},actorId:s.id});
+  if(contact)await logEvent(client,{organizationId:s.organization_id,recordId:contact.rows[0].id,recordType:'contacts',eventType:'created_from_lead',summary:'Contact dibuat dari Lead',payload:{lead_id:leadId},actorId:s.id});
   await client.query('COMMIT');
   return send(res,200,{data:{lead_id:leadId,customer_id:customer.rows[0].id,contact_id:contact?.rows[0]?.id||null}});
  }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
@@ -99,19 +113,20 @@ export async function handleCrmApi(req,res,pathname){
  if(pathname==='/api/crm/health'&&req.method==='GET'){try{await pool.query('SELECT 1');send(res,200,{status:'ok',module:'crm',database:'connected'});}catch{send(res,503,{error:'Database unavailable'});}return true;}
  const conversion=pathname.match(/^\/api\/crm\/leads\/([0-9a-f-]{36})\/convert$/i);
  if(conversion&&req.method==='POST'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await convertLead(req,res,s,conversion[1]);}catch(e){console.error('CRM lead conversion:',e);send(res,500,{error:'Lead conversion failed'});}return true;}
+ if(pathname==='/api/crm/timeline'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readTimeline(req,res,s,url);}catch(e){console.error('CRM timeline API:',e);send(res,500,{error:'Unable to load activity timeline'});}return true;}
  if(pathname==='/api/crm/options'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readOptions(req,res,s,url);}catch(e){console.error('CRM options API:',e);send(res,500,{error:'Unable to load lookup options'});}return true;}
  if(pathname==='/api/crm/records'){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{
    if(req.method==='GET'){await readRecords(req,res,s,url);return true;}
-   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups(type,data,s.organization_id);const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);send(res,201,{data:r.rows[0]});return true;}
+   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups(type,data,s.organization_id);const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:type,eventType:'created',summary:(type==='activities'?'Aktivitas dibuat: ':'Record dibuat: ')+name,payload:{},actorId:s.id});send(res,201,{data:r.rows[0]});return true;}
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  const m=pathname.match(/^\/api\/crm\/records\/([0-9a-f-]{36})$/i);
  if(m&&['PUT','DELETE'].includes(req.method)){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
-  try{if(req.method==='DELETE'){const r=await pool.query('DELETE FROM crm.records WHERE id=$1 AND organization_id=$2 RETURNING id',[m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{ok:true});return true;}
-   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups((await pool.query('SELECT record_type FROM crm.records WHERE id=$1 AND organization_id=$2',[m[1],s.organization_id])).rows[0]?.record_type,data,s.organization_id);const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{data:r.rows[0]});return true;
+  try{if(req.method==='DELETE'){const r=await pool.query('DELETE FROM crm.records WHERE id=$1 AND organization_id=$2 RETURNING id,record_type,data');if(!r.rowCount)return send(res,404,{error:'Record not found'});await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:r.rows[0].record_type,eventType:'deleted',summary:'Record dihapus: '+String(r.rows[0].data?.name||r.rows[0].data?.subject||r.rows[0].record_type),payload:{},actorId:s.id});send(res,200,{ok:true});return true;}
+   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups((await pool.query('SELECT record_type FROM crm.records WHERE id=$1 AND organization_id=$2',[m[1],s.organization_id])).rows[0]?.record_type,data,s.organization_id);const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:r.rows[0].record_type,eventType:'updated',summary:'Record diperbarui: '+String(data.name||data.subject||r.rows[0].record_type),payload:{},actorId:s.id});send(res,200,{data:r.rows[0]});return true;
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  if(pathname==='/api/crm/leads'&&['GET','POST'].includes(req.method)){send(res,410,{error:'Use /api/crm/records?entity=leads'});return true;}
