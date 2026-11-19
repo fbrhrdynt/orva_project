@@ -97,7 +97,8 @@ export async function handleCrmApi(req,res,pathname){
  if(!pathname.startsWith('/api/crm/'))return false;
  const url=new URL(req.url,'http://orva.local');
  if(pathname==='/api/crm/health'&&req.method==='GET'){try{await pool.query('SELECT 1');send(res,200,{status:'ok',module:'crm',database:'connected'});}catch{send(res,503,{error:'Database unavailable'});}return true;}
- const conversion=pathname.match(/^\\/api\\/crm\\/leads\\/([0-9a-f-]{36})\\/convert$/i);\n if(conversion&&req.method==='POST'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await convertLead(req,res,s,conversion[1]);}catch(e){console.error('CRM lead conversion:',e);send(res,500,{error:'Lead conversion failed'});}return true;}\n if(pathname==='/api/crm/options'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readOptions(req,res,s,url);}catch(e){console.error('CRM options API:',e);send(res,500,{error:'Unable to load lookup options'});}return true;}
+ const conversion=pathname.match(/^\/api\/crm\/leads\/([0-9a-f-]{36})\/convert$/i);
+ if(conversion&&req.method==='POST'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await convertLead(req,res,s,conversion[1]);}catch(e){console.error('CRM lead conversion:',e);send(res,500,{error:'Lead conversion failed'});}return true;}\n if(pathname==='/api/crm/options'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readOptions(req,res,s,url);}catch(e){console.error('CRM options API:',e);send(res,500,{error:'Unable to load lookup options'});}return true;}
  if(pathname==='/api/crm/records'){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{
