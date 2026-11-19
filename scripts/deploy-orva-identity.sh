@@ -92,6 +92,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/007_crm_query_indexes.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/008_crm_activity_plan_runs.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/009_enterprise_settings.sql"
+[[ "$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT to_regclass('core.organization_settings') IS NOT NULL AND to_regclass('core.currencies') IS NOT NULL AND to_regclass('core.admin_audit_events') IS NOT NULL")" == "t" ]] || { echo "Migration 009 verification failed"; exit 1; }
 unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
 echo "[7/9] Permission dan restart service"
@@ -111,36 +112,6 @@ assert_login_redirect() {
   headers="$(mktemp)"
   actual="$(curl -sS --max-time 15 -D "$headers" -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$path")"
   if [[ "$actual" != "302" ]] || ! tr -d '\r' < "$headers" | grep -Eiq '^Location:[[:space:]]*/login[[:space:]]*$'; then
-    echo "$path => HTTP $actual; expected 302 Location: /login"
-    cat "$headers"
-    rm -f "$headers"
-    return 1
-  fi
-  echo "$path => HTTP 302 Location: /login (expected unauthenticated behavior)"
-  rm -f "$headers"
-}
-assert_status "/login" "200"
-assert_status "/api/auth/me" "401"
-assert_login_redirect "/"
-assert_login_redirect "/admin"
-assert_login_redirect "/crm"
-assert_login_redirect "/crm/dashboard"
-assert_login_redirect "/crm/leads"
-HEALTH="$(curl -fsS --max-time 15 "http://127.0.0.1:$PORT/api/crm/health")"
-printf '%s' "$HEALTH" | grep -q '"database":"connected' || { echo "CRM database health check gagal: $HEALTH"; exit 1; }
-echo "CRM health: $HEALTH"
-echo "[9/9] Deploy selesai"
-echo "Commit production : $TARGET_COMMIT"
-echo "Commit sebelumnya: $PREVIOUS_COMMIT"
-echo "Database backup   : $BACKUP_FILE"
-echo "Source bundle     : $BACKUP_DIR/orva-before-identity-$STAMP.bundle"
-echo "Login             : https://$(hostname -f)/login"
-echo "Owner Console     : https://$(hostname -f)/admin"
-echo "Session           : 8 jam, HttpOnly + Secure + SameSite=Lax"
-echo "CRM records       : PostgreSQL, tenant-scoped + demo seed"
-DEPLOY_STARTED=0
-trap - EXIT ERR
-; then
     echo "$path => HTTP $actual; expected 302 Location: /login"
     cat "$headers"
     rm -f "$headers"
