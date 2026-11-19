@@ -52,6 +52,14 @@ function sendFile(req, res, file) {
 }
 
 const server = http.createServer(async (req, res) => {
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch {
+    res.writeHead(400);
+    return res.end('Bad Request');
+  }
+
   if (pathname.startsWith('/api/crm/')) {
     try {
       const handled = await handleCrmApi(req, res, pathname);
@@ -69,14 +77,6 @@ const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) {
     res.writeHead(405, { Allow: 'GET, HEAD' });
     return res.end('Method Not Allowed');
-  }
-
-  let pathname;
-  try {
-    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-  } catch {
-    res.writeHead(400);
-    return res.end('Bad Request');
   }
 
   if (pathname === '/') return sendFile(req, res, path.join(webRoot, 'index.html'));
