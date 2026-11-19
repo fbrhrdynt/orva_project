@@ -14,7 +14,7 @@ for c in git node systemctl curl; do command -v "$c" >/dev/null || { echo "Missi
 id "$USER_NAME" >/dev/null
 install -d -o "$USER_NAME" -g "$USER_NAME" "$BACKUPS" "$APP"
 echo "[1/5] Fetch source"
-git clone --depth 1 --branch "$BRANCH" "$REPO" "$TMP/repo"
+GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/orva_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" git clone --depth 1 --branch "$BRANCH" "$REPO" "$TMP/repo"
 SRC="$TMP/repo/breakdown-prototype/crm-module"
 test -s "$SRC/app.html" && test -s "$SRC/server.mjs" || { echo "CRM source files are missing"; exit 1; }
 echo "[2/5] Backup current release"
