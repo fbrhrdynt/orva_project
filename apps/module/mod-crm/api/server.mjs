@@ -29,7 +29,7 @@ async function readOptions(req,res,s,url){
 }
 async function validateRequiredRelations(type,data){
  const required={contacts:['company','company_id'],opportunities:['customer','customer_id'],activities:['related_to','related_to_id']};
- const pair=required[type];if(pair&&String(data[pair[0]]||'').trim()&&!data[pair[1]])throw Object.assign(new Error(pair[0]+' wajib dipilih dari data yang tersedia.'),{status:422});
+ const pair=required[type];if(pair&&(type==='opportunities'||String(data[pair[0]]||'').trim())&&!data[pair[1]])throw Object.assign(new Error(pair[0]+' wajib dipilih dari data yang tersedia.'),{status:422});
  if(type==='contacts'&&data.company_id&&!data.company)throw Object.assign(new Error('Nama Customer harus diisi.'),{status:422});
  if(type==='opportunities'&&data.customer_id&&!data.customer)throw Object.assign(new Error('Nama Customer harus diisi.'),{status:422});
 }
