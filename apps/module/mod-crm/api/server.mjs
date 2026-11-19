@@ -79,6 +79,27 @@ export async function handleCrmApi(req, res, pathname) {
   }
 
   try {
+    const access = await pool.query(
+      `SELECT 1
+         FROM core.memberships m
+         JOIN core.organizations o ON o.id = m.organization_id
+         JOIN core.organization_modules om ON om.organization_id = m.organization_id
+        WHERE m.user_id = $1 AND m.organization_id = $2
+          AND m.status = 'active' AND o.status = 'active'
+          AND om.module_key = 'crm' AND om.enabled = true
+          AND ($3 = true OR EXISTS (
+            SELECT 1 FROM core.user_module_access a
+             WHERE a.user_id = m.user_id AND a.organization_id = m.organization_id
+               AND a.module_key = 'crm' AND a.can_access = true
+          ))
+        LIMIT 1`,
+      [claims.sub, claims.organization_id, claims.is_platform_owner === true]
+    );
+    if (!access.rowCount) {
+      send(res, 403, { error: 'CRM access is not assigned to this account' });
+      return true;
+    }
+
     if (req.method === 'GET') {
       authorize(claims, 'crm.leads:read');
       const result = await pool.query(
