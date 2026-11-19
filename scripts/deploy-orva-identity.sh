@@ -87,6 +87,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/004_crm_search_and_pagination.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/005_expand_crm_entities.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/006_crm_activity_timeline.sql"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/007_crm_query_indexes.sql"
 unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
 echo "[7/9] Permission dan restart service"
