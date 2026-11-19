@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101b2d">
+<title>ORVA CRM — Sidebar Prototype</title>
+<style>
+:root{--sidebar:#101b2d;--sidebar-soft:#192940;--hover:#233750;--accent:#7895ff;--bg:#f5f7fb;--text:#172338;--muted:#8290a5;--sidebar-width:270px}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input{font:inherit}
+.app{min-height:100vh}
+.sidebar{width:var(--sidebar-width);height:100vh;position:fixed;inset:0 auto 0 0;z-index:20;display:flex;flex-direction:column;background:var(--sidebar);color:#fff;transition:width .22s ease,transform .22s ease}
+.brand{height:76px;flex:none;display:flex;align-items:center;gap:12px;padding:0 22px;border-bottom:1px solid #ffffff12}
+.brand-mark{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:11px;background:linear-gradient(145deg,#7695ff,#536ee5);font-size:20px;font-weight:800}
+.brand-name{font-size:21px;font-weight:750;letter-spacing:1.5px}
+.brand-caption{margin-top:2px;color:#91a2ba;font-size:10px;letter-spacing:2px}
+.module-card{margin:18px 14px 12px;padding:13px;background:var(--sidebar-soft);border:1px solid #ffffff12;border-radius:10px}
+.module-top{display:flex;align-items:center;justify-content:space-between}
+.module-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#344c75;font-size:18px}
+.version{padding:4px 7px;border:1px solid #ffffff20;border-radius:5px;color:#a9b9d2;font-size:10px}
+.module-name{margin-top:11px;font-size:14px;font-weight:650}
+.module-desc{margin-top:4px;color:#8fa1ba;font-size:11px}
+.module-status{display:flex;align-items:center;gap:6px;margin-top:11px;color:#85d8ae;font-size:10px}
+.dot{width:6px;height:6px;border-radius:50%;background:#63d39b}
+.search{position:relative;margin:4px 14px 14px}
+.search input{width:100%;padding:10px 34px;border:1px solid #ffffff15;border-radius:8px;outline:none;background:#ffffff0c;color:white;font-size:12px}
+.search input::placeholder{color:#8192aa}
+.search-icon{position:absolute;top:8px;left:12px;color:#8b9db5;font-size:17px}
+.search-shortcut{position:absolute;top:9px;right:10px;color:#8b9db5;font-size:10px}
+.nav{flex:1;overflow-y:auto;padding:0 12px 16px}
+.nav::-webkit-scrollbar{width:4px}
+.nav::-webkit-scrollbar-thumb{border-radius:5px;background:#34465d}
+.nav-label{padding:10px;color:#70839d;font-size:10px;font-weight:700;letter-spacing:1.3px}
+.nav-group{margin-bottom:3px}
+.nav-heading{width:100%;display:flex;align-items:center;gap:12px;padding:11px 10px;border:0;border-radius:7px;background:transparent;color:#c1ccdc;text-align:left;cursor:pointer;font-size:12.5px;transition:background .15s,color .15s}
+.nav-heading:hover{background:var(--hover);color:white}
+.nav-heading.active{background:#30466b;color:white}
+.nav-icon{width:19px;flex:none;text-align:center;font-size:15px}
+.chevron{margin-left:auto;color:#8294ae;font-size:12px;transition:transform .2s}
+.nav-group.open .chevron{transform:rotate(90deg)}
+.submenu{display:none;margin:3px 0 7px 19px;padding-left:14px;border-left:1px solid #ffffff20}
+.nav-group.open .submenu{display:block}
+.submenu a{position:relative;display:block;margin:2px 0;padding:9px 10px;border-radius:6px;color:#91a2ba;text-decoration:none;font-size:12px;transition:background .15s,color .15s}
+.submenu a:hover{background:#ffffff0c;color:white}
+.submenu a.active{background:#536fe526;color:#a9bcff;font-weight:650}
+.submenu a.active:before{position:absolute;top:7px;bottom:7px;left:-15px;width:2px;border-radius:4px;background:var(--accent);content:""}
+.sidebar-footer{flex:none;padding:14px;border-top:1px solid #ffffff12}
+.user{display:flex;align-items:center;gap:10px;padding:5px}
+.avatar{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;background:#3c5277;font-size:12px;font-weight:700}
+.user-name{font-size:12px;font-weight:650}
+.user-role{margin-top:3px;color:#8294ae;font-size:10px}
+.main{min-height:100vh;margin-left:var(--sidebar-width);transition:margin-left .22s ease}
+.topbar{height:76px;display:flex;align-items:center;gap:16px;padding:0 30px;border-bottom:1px solid #e9edf3;background:#fff}
+.toggle{border:0;background:transparent;color:#64748b;cursor:pointer;font-size:20px}
+.breadcrumb{color:var(--muted);font-size:12px}
+.breadcrumb strong{color:var(--text)}
+.top-right{margin-left:auto;color:#64748b;font-size:12px}
+.workspace{padding:32px}
+.workspace-note{max-width:620px;padding:24px;border:1px dashed #d5dce7;border-radius:12px;background:#ffffff;color:#8290a5;font-size:13px;line-height:1.7}
+.sidebar.collapsed{width:76px}
+.sidebar.collapsed .brand-name,.sidebar.collapsed .brand-caption,.sidebar.collapsed .module-card,.sidebar.collapsed .search,.sidebar.collapsed .nav-label,.sidebar.collapsed .nav-heading span:not(.nav-icon),.sidebar.collapsed .submenu,.sidebar.collapsed .user-info{display:none}
+.sidebar.collapsed .brand{padding:0 20px}
+.sidebar.collapsed .nav{padding:10px}
+.sidebar.collapsed .nav-heading{justify-content:center;padding:13px 5px}
+.sidebar.collapsed .nav-icon{font-size:18px}
+.sidebar.collapsed .sidebar-footer{padding:12px 20px}
+.overlay{display:none}
+@media(max-width:768px){
+ .sidebar{transform:translateX(-100%)}
+ .sidebar.mobile-open{width:270px;transform:translateX(0)}
+ .main{margin-left:0}
+ .topbar{padding:0 16px}
+ .workspace{padding:22px 17px}
+ .overlay{position:fixed;inset:0;z-index:15;background:#0c172b80}
+ .overlay.show{display:block}
+ .top-right{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar" aria-label="CRM navigation">
+ <div class="brand">
+  <div class="brand-mark">O</div>
+  <div><div class="brand-name">ORVA</div><div class="brand-caption">BUSINESS PLATFORM</div></div>
+ </div>
+ <section class="module-card" aria-label="Current module">
+  <div class="module-top"><div class="module-icon">◎</div><span class="version">v1.0.0</span></div>
+  <div class="module-name">Customer Relationship</div>
+  <div class="module-desc">CRM Module</div>
+  <div class="module-status"><span class="dot"></span>Module Active</div>
+ </section>
+ <div class="search">
+  <span class="search-icon" aria-hidden="true">⌕</span>
+  <input id="menuSearch" type="search" placeholder="Search menu..." aria-label="Search menu">
+  <span class="search-shortcut">/</span>
+ </div>
+ <nav class="nav" id="navigation">
+  <div class="nav-label">CRM WORKSPACE</div>
+  <div class="nav-group open">
+   <button class="nav-heading active" type="button" aria-expanded="true"><span class="nav-icon">▦</span><span>Dashboard</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#crm-overview" class="active">CRM Overview</a><a href="#lead-statistics">Lead Statistics</a><a href="#opportunity-statistics">Opportunity Statistics</a><a href="#sales-pipeline">Sales Pipeline</a><a href="#conversion-rate">Conversion Rate</a><a href="#sales-forecast">Sales Forecast</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">♧</span><span>Leads</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#all-leads">All Leads</a><a href="#my-leads">My Leads</a><a href="#unassigned-leads">Unassigned Leads</a><a href="#new-leads">New Leads</a><a href="#qualified-leads">Qualified Leads</a><a href="#lost-leads">Lost Leads</a><a href="#lead-sources">Lead Sources</a><a href="#lead-import">Lead Import</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">♙</span><span>Customers</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#all-customers">All Customers</a><a href="#companies">Companies</a><a href="#individual-customers">Individual Customers</a><a href="#customer-categories">Customer Categories</a><a href="#customer-groups">Customer Groups</a><a href="#customer-addresses">Customer Addresses</a><a href="#customer-contacts">Customer Contacts</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">♧</span><span>Contacts</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#all-contacts">All Contacts</a><a href="#contact-persons">Contact Persons</a><a href="#contact-directory">Contact Directory</a><a href="#contact-activities">Contact Activities</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">◈</span><span>Opportunities</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#all-opportunities">All Opportunities</a><a href="#my-opportunities">My Opportunities</a><a href="#pipeline">Pipeline</a><a href="#kanban-view">Kanban View</a><a href="#won-opportunities">Won Opportunities</a><a href="#lost-opportunities">Lost Opportunities</a><a href="#lost-reasons">Lost Reasons</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">◷</span><span>Activities</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#all-activities">All Activities</a><a href="#calls">Calls</a><a href="#meetings">Meetings</a><a href="#emails">Emails</a><a href="#follow-ups">Follow-ups</a><a href="#scheduled-activities">Scheduled Activities</a><a href="#overdue-activities">Overdue Activities</a>
+   </div>
+  </div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">⌁</span><span>Sales Forecast</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#forecast-overview">Forecast Overview</a><a href="#forecast-salesperson">Forecast by Salesperson</a><a href="#forecast-team">Forecast by Team</a><a href="#forecast-period">Forecast by Period</a>
+   </div>
+  </div>
+  <div class="nav-label">ADMINISTRATION</div>
+  <div class="nav-group">
+   <button class="nav-heading" type="button" aria-expanded="false"><span class="nav-icon">⚙</span><span>Configuration</span><span class="chevron">›</span></button>
+   <div class="submenu">
+    <a href="#config-lead-sources">Lead Sources</a><a href="#config-pipeline-stages">Pipeline Stages</a><a href="#config-activity-types">Activity Types</a><a href="#config-lost-reasons">Lost Reasons</a><a href="#config-sales-teams">Sales Teams</a>
+   </div>
+  </div>
+ </nav>
+ <footer class="sidebar-footer"><div class="user"><div class="avatar">FH</div><div class="user-info"><div class="user-name">Workspace Admin</div><div class="user-role">Platform Administrator</div></div></div></footer>
+</aside>
+<div class="overlay" id="overlay"></div>
+<main class="main">
+ <header class="topbar">
+  <button class="toggle" id="toggle" type="button" aria-label="Toggle navigation">☰</button>
+  <div class="breadcrumb">ORVA / CRM / <strong id="breadcrumb">CRM Overview</strong></div>
+  <div class="top-right">CRM · v1.0.0</div>
+ </header>
+ <section class="workspace">
+  <div class="workspace-note">Sidebar prototype only. Main workspace content and CRM features are intentionally not implemented in this file.</div>
+ </section>
+</main>
+</div>
+<script>
+const sidebar=document.getElementById('sidebar');
+const overlay=document.getElementById('overlay');
+const groups=[...document.querySelectorAll('.nav-group')];
+document.querySelectorAll('.nav-heading').forEach(button=>{
+ button.addEventListener('click',()=>{
+  const group=button.closest('.nav-group');
+  const willOpen=!group.classList.contains('open');
+  group.classList.toggle('open',willOpen);
+  button.classList.toggle('active',willOpen);
+  button.setAttribute('aria-expanded',String(willOpen));
+ });
+});
+document.querySelectorAll('.submenu a').forEach(link=>{
+ link.addEventListener('click',event=>{
+  event.preventDefault();
+  document.querySelectorAll('.submenu a').forEach(item=>item.classList.remove('active'));
+  document.querySelectorAll('.nav-heading').forEach(item=>{item.classList.remove('active');item.setAttribute('aria-expanded','false')});
+  groups.forEach(group=>group.classList.remove('open'));
+  link.classList.add('active');
+  const group=link.closest('.nav-group');
+  group.classList.add('open');
+  const heading=group.querySelector('.nav-heading');
+  heading.classList.add('active');
+  heading.setAttribute('aria-expanded','true');
+  document.getElementById('breadcrumb').textContent=link.textContent.trim();
+  if(window.innerWidth<=768)closeMobile();
+ });
+});
+document.getElementById('toggle').addEventListener('click',()=>{
+ if(window.innerWidth<=768){sidebar.classList.toggle('mobile-open');overlay.classList.toggle('show')}
+ else sidebar.classList.toggle('collapsed');
+});
+function closeMobile(){sidebar.classList.remove('mobile-open');overlay.classList.remove('show')}
+overlay.addEventListener('click',closeMobile);
+document.getElementById('menuSearch').addEventListener('input',event=>{
+ const query=event.target.value.toLowerCase().trim();
+ groups.forEach(group=>{
+  const heading=group.querySelector('.nav-heading').textContent.toLowerCase();
+  const links=[...group.querySelectorAll('.submenu a')];
+  let matches=0;
+  links.forEach(link=>{
+   const matched=link.textContent.toLowerCase().includes(query);
+   link.hidden=Boolean(query)&&!matched;
+   if(matched)matches++;
+  });
+  const headingMatch=heading.includes(query);
+  group.hidden=Boolean(query)&&!headingMatch&&!matches;
+  if(query&&(headingMatch||matches)){
+   group.classList.add('open');
+   group.querySelector('.nav-heading').setAttribute('aria-expanded','true');
+  }
+ });
+});
+document.addEventListener('keydown',event=>{
+ if(event.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){
+  event.preventDefault();document.getElementById('menuSearch').focus();
+ }
+ if(event.key==='Escape')closeMobile();
+});
+</script>
+</body>
+</html>
