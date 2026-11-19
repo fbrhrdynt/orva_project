@@ -27,7 +27,7 @@ async function readOptions(req,res,s,url){
  send(res,200,{data:rows});
 }
 async function validateLookups(type,data,organizationId){
- const recordRelations={source_id:['lead_sources'],company_id:['customers'],customer_id:['customers'],stage_id:['pipeline_stages'],type_id:['activity_types']};
+ const recordRelations={source_id:['lead_sources'],company_id:['customers'],customer_id:['customers'],stage_id:['pipeline_stages'],type_id:['activity_types'],lost_reason_id:['lost_reasons']};
  for(const [field,types] of Object.entries(recordRelations)){
   const id=data[field];if(!id)continue;
   const q=await pool.query('SELECT 1 FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type=ANY($3::text[])',[id,organizationId,types]);
