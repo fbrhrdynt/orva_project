@@ -37,8 +37,8 @@ async function readJson(req) {
   }
 }
 
-function authorize(claims, permission) {
-  if (!claims.permissions.includes(permission) && !claims.permissions.includes('crm:*') && !claims.permissions.includes('*')) {
+function authorize(claims, permission, moduleGranted = false) {
+  if (!moduleGranted && !claims.permissions.includes(permission) && !claims.permissions.includes('crm:*') && !claims.permissions.includes('*')) {
     throw Object.assign(new Error('Forbidden'), { status: 403 });
   }
 }
@@ -101,7 +101,7 @@ export async function handleCrmApi(req, res, pathname) {
     }
 
     if (req.method === 'GET') {
-      authorize(claims, 'crm.leads:read');
+      authorize(claims, 'crm.leads:read', true);
       const result = await pool.query(
         `SELECT id, organization_id, name, company, email, phone, source, status,
                 assigned_to, created_at, updated_at
@@ -115,7 +115,7 @@ export async function handleCrmApi(req, res, pathname) {
       return true;
     }
 
-    authorize(claims, 'crm.leads:create');
+    authorize(claims, 'crm.leads:create', true);
     const body = await readJson(req);
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 160) {
