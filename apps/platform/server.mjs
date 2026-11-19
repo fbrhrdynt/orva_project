@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'public');
 const host=process.env.HOST||'127.0.0.1';
-const port=Number.parseInt(process.env.PORT||'3100',10);
+const port=Number.parseInt(process.env.PORT||'3103',10);
 if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT');
 const server=http.createServer((req,res)=>{
  if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{Allow:'GET, HEAD'});return res.end('Method Not Allowed')}
