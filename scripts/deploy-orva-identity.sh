@@ -92,6 +92,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/007_crm_query_indexes.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/008_crm_activity_plan_runs.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/009_enterprise_settings.sql"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/010_settings_access_control.sql"
 [[ "$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT to_regclass('core.organization_settings') IS NOT NULL AND to_regclass('core.currencies') IS NOT NULL AND to_regclass('core.admin_audit_events') IS NOT NULL")" == "t" ]] || { echo "Migration 009 verification failed"; exit 1; }
 unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
@@ -130,6 +131,8 @@ assert_login_redirect "/crm/leads"
 HEALTH="$(curl -fsS --max-time 15 "http://127.0.0.1:$PORT/api/crm/health")"
 printf '%s' "$HEALTH" | grep -q '"database":"connected' || { echo "CRM database health check gagal: $HEALTH"; exit 1; }
 echo "CRM health: $HEALTH"
+ACCESS_SCHEMA="$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT to_regclass('core.permission_catalog') IS NOT NULL AND to_regclass('core.role_record_scopes') IS NOT NULL AND to_regclass('core.role_field_policies') IS NOT NULL AND to_regclass('core.role_action_policies') IS NOT NULL AND to_regclass('core.smtp_test_events') IS NOT NULL")"
+[[ "$ACCESS_SCHEMA" == "t" ]] || { echo "Migration 010 verification failed"; exit 1; }
 echo "[9/9] Deploy selesai"
 echo "Commit production : $TARGET_COMMIT"
 echo "Commit sebelumnya: $PREVIOUS_COMMIT"
