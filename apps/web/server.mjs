@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleCrmApi } from '../module/mod-crm/api/server.mjs';
+import { handleIdentityApi } from '../module/mod-crm/api/identity.mjs';
+import { verifyAccessToken } from '../module/mod-crm/api/auth.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.join(root, 'public');
@@ -33,6 +35,13 @@ function hasSession(req) {
     verifyAccessToken(decodeURIComponent(cookie.slice('orva_session='.length)), process.env.ORVA_AUTH_SECRET);
     return true;
   } catch { return false; }
+}
+
+function hasSession(req) {
+  const cookie = (req.headers.cookie || '').split(';').map(v => v.trim()).find(v => v.startsWith('orva_session='));
+  if (!cookie) return false;
+  try { verifyAccessToken(decodeURIComponent(cookie.slice('orva_session='.length)), process.env.ORVA_AUTH_SECRET); return true; }
+  catch { return false; }
 }
 
 function resolveInside(base, relativePath) {
@@ -69,12 +78,12 @@ const server = http.createServer(async (req, res) => {
     return res.end('Bad Request');
   }
 
-  if (pathname.startsWith('/api/crm/')) {
+  if (pathname.startsWith('/api/')) {
     try {
-      const handled = await handleCrmApi(req, res, pathname);
+      const handled = pathname.startsWith('/api/auth/') ? await handleIdentityApi(req, res, pathname) : pathname.startsWith('/api/crm/') ? await handleCrmApi(req, res, pathname) : false;
       if (handled) return;
     } catch (error) {
-      console.error('ORVA CRM API error:', error);
+      console.error('ORVA API error:', error);
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
@@ -90,6 +99,10 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/login') return sendFile(req, res, path.join(webRoot, 'login.html'));
   if (pathname === '/' || pathname === '/dashboard' || pathname === '/crm' || pathname.startsWith('/crm/')) {
+    if (!hasSession(req)) { res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' }); return res.end(); }
+  }
+  if (pathname === '/login') return sendFile(req, res, path.join(webRoot, 'login.html'));
+  if (['/', '/dashboard', '/crm'].includes(pathname) || pathname.startsWith('/crm/')) {
     if (!hasSession(req)) { res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' }); return res.end(); }
   }
   if (pathname === '/') return sendFile(req, res, path.join(webRoot, 'index.html'));

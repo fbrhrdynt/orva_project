@@ -62,8 +62,10 @@ export async function handleCrmApi(req, res, pathname) {
     return true;
   }
 
-  const match = (req.headers.authorization || '').match(/^Bearer ([A-Za-z0-9._-]+)$/);
-  if (!match) {
+  const bearer = (req.headers.authorization || '').match(/^Bearer ([A-Za-z0-9._-]+)$/);
+  const cookie = (req.headers.cookie || '').split(';').map(v => v.trim()).find(v => v.startsWith('orva_session='));
+  const token = bearer?.[1] || (cookie ? decodeURIComponent(cookie.slice('orva_session='.length)) : null);
+  if (!token) {
     send(res, 401, { error: 'Authentication required' });
     return true;
   }
