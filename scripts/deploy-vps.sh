@@ -40,6 +40,16 @@ EOF
   chmod 600 "$SSH_CONFIG"
 fi
 ssh-keyscan -H github.com >> /root/.ssh/known_hosts 2>/dev/null || true
+NODE_BIN="$(command -v node || true)"
+if [[ -z "$NODE_BIN" && -x /home/ubuntu/.nvm/versions/node/v22.23.5/bin/node ]]; then NODE_BIN=/home/ubuntu/.nvm/versions/node/v22.23.5/bin/node; fi
+if [[ -z "$NODE_BIN" ]]; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  apt-get install -y nodejs
+  NODE_BIN="$(command -v node)"
+fi
+node_major="$("$NODE_BIN" -p 'process.versions.node.split(".")[0]')"
+[[ "$node_major" -ge 20 ]] || { echo "Node.js >=20 dibutuhkan, ditemukan $($NODE_BIN --version)" >&2; exit 1; }
+
 if [[ ! -d "$APP_DIR/.git" ]]; then
   install -d -o root -g root -m 755 "$APP_DIR"
   git clone --branch "$BRANCH" "$REPO" "$APP_DIR"
@@ -65,7 +75,7 @@ WorkingDirectory=$APP_DIR/apps/web
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=$PORT
-ExecStart=/usr/bin/node $APP_DIR/apps/web/server.mjs
+ExecStart=$NODE_BIN $APP_DIR/apps/web/server.mjs
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
