@@ -63,6 +63,8 @@ node --check api/auth.mjs
 node --check api/identity.mjs
 node --check api/server.mjs
 node --check "$APP_DIR/apps/web/server.mjs"
+awk 'BEGIN { inside=0 } /<script>/ { inside=1; next } /<\/script>/ { inside=0 } inside { print }' "$APP_DIR/apps/web/public/admin.html" > /tmp/orva-admin-inline.js
+node --check /tmp/orva-admin-inline.js
 node --check "$APP_DIR/scripts/bootstrap-orva-admin.mjs"
 awk 'BEGIN { inside=0 } /<script>/ { inside=1; next } /<\/script>/ { inside=0 } inside { print }' "$APP_DIR/apps/module/mod-crm/public/index.html" > /tmp/orva-crm-inline.js
 node --check /tmp/orva-crm-inline.js
@@ -89,6 +91,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/006_crm_activity_timeline.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/007_crm_query_indexes.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/008_crm_activity_plan_runs.sql"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/009_enterprise_settings.sql"
 unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
 echo "[7/9] Permission dan restart service"
