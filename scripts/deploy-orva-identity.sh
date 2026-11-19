@@ -98,10 +98,11 @@ AUTH_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api
 ROOT_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/")"
 ADMIN_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/admin")"
 CRM_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/crm")"
+CRM_LEADS_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/crm/leads")"
 HEALTH="$(curl --fail --silent --show-error "http://127.0.0.1:$PORT/api/crm/health")"
-[[ "$LOGIN_CODE" == "200" && "$AUTH_CODE" == "401" && "$ROOT_CODE" == "302" && "$ADMIN_CODE" == "302" && "$CRM_CODE" == "302" ]] || { echo "Smoke test gagal: login=$LOGIN_CODE auth=$AUTH_CODE root=$ROOT_CODE admin=$ADMIN_CODE crm=$CRM_CODE"; exit 1; }
+[[ "$LOGIN_CODE" == "200" && "$AUTH_CODE" == "401" && "$ROOT_CODE" == "302" && "$ADMIN_CODE" == "302" && "$CRM_CODE" == "302" && "$CRM_LEADS_CODE" == "302" ]] || { echo "Smoke test gagal: login=$LOGIN_CODE auth=$AUTH_CODE root=$ROOT_CODE admin=$ADMIN_CODE crm=$CRM_CODE crm-leads=$CRM_LEADS_CODE"; exit 1; }
 printf '%s' "$HEALTH" | grep -q '"database":"connected'
-echo "Login=$LOGIN_CODE, auth=$AUTH_CODE, protected routes=$ROOT_CODE/$ADMIN_CODE/$CRM_CODE"
+echo "Login=$LOGIN_CODE, auth=$AUTH_CODE, protected routes=$ROOT_CODE/$ADMIN_CODE/$CRM_CODE/$CRM_LEADS_CODE"
 echo "CRM health: $HEALTH"
 echo "[9/9] Deploy selesai"
 echo "Commit production : $TARGET_COMMIT"
