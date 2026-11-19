@@ -26,6 +26,15 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('Invalid PORT configuration');
 }
 
+function hasSession(req) {
+  const cookie = (req.headers.cookie || '').split(';').map(v => v.trim()).find(v => v.startsWith('orva_session='));
+  if (!cookie) return false;
+  try {
+    verifyAccessToken(decodeURIComponent(cookie.slice('orva_session='.length)), process.env.ORVA_AUTH_SECRET);
+    return true;
+  } catch { return false; }
+}
+
 function resolveInside(base, relativePath) {
   const target = path.resolve(base, relativePath);
   return target === base || target.startsWith(base + path.sep) ? target : null;
@@ -79,15 +88,16 @@ const server = http.createServer(async (req, res) => {
     return res.end('Method Not Allowed');
   }
 
+  if (pathname === '/login') return sendFile(req, res, path.join(webRoot, 'login.html'));
+  if (pathname === '/' || pathname === '/dashboard' || pathname === '/crm' || pathname.startsWith('/crm/')) {
+    if (!hasSession(req)) { res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' }); return res.end(); }
+  }
   if (pathname === '/') return sendFile(req, res, path.join(webRoot, 'index.html'));
   if (pathname === '/dashboard') return sendFile(req, res, path.join(webRoot, 'dashboard.html'));
   if (pathname === '/crm' || pathname.startsWith('/crm/')) {
     const relative = pathname === '/crm' || pathname === '/crm/' ? 'index.html' : pathname.slice(5);
     const file = resolveInside(crmRoot, relative);
-    if (!file) {
-      res.writeHead(403);
-      return res.end('Forbidden');
-    }
+    if (!file) { res.writeHead(403); return res.end('Forbidden'); }
     return sendFile(req, res, file);
   }
 
