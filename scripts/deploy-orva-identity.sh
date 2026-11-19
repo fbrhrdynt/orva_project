@@ -96,17 +96,35 @@ chown -R orva:orva "$APP_DIR"
 systemctl restart "$SERVICE"
 sleep 3
 systemctl is-active --quiet "$SERVICE"
-echo "[8/9] Smoke test"
-LOGIN_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/login")"
-AUTH_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api/auth/me")"
-ROOT_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/")"
-ADMIN_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/admin")"
-CRM_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/crm")"
-CRM_LEADS_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/crm/leads")"
-HEALTH="$(curl --fail --silent --show-error "http://127.0.0.1:$PORT/api/crm/health")"
-[[ "$LOGIN_CODE" == "200" && "$AUTH_CODE" == "401" && "$ROOT_CODE" == "302" && "$ADMIN_CODE" == "302" && "$CRM_CODE" == "200" && "$CRM_LEADS_CODE" == "200" ]] || { echo "Smoke test gagal: login=$LOGIN_CODE auth=$AUTH_CODE root=$ROOT_CODE admin=$ADMIN_CODE crm=$CRM_CODE crm-leads=$CRM_LEADS_CODE"; exit 1; }
-printf '%s' "$HEALTH" | grep -q '"database":"connected'
-echo "Login=$LOGIN_CODE, auth=$AUTH_CODE, protected routes=$ROOT_CODE/$ADMIN_CODE/$CRM_CODE/$CRM_LEADS_CODE"
+echo "[8/9] Smoke test (public + protected route behavior)"
+assert_status() {
+  local path="$1" expected="$2" actual
+  actual="$(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$path")"
+  echo "$path => HTTP $actual (expected $expected)"
+  [[ "$actual" == "$expected" ]] || { echo "Smoke test gagal pada $path"; return 1; }
+}
+assert_login_redirect() {
+  local path="$1" headers actual
+  headers="$(mktemp)"
+  actual="$(curl -sS --max-time 15 -D "$headers" -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$path")"
+  if [[ "$actual" != "302" ]] || ! grep -Eiq '^Location: /login\\r?$' "$headers"; then
+    echo "$path => HTTP $actual; expected 302 Location: /login"
+    cat "$headers"
+    rm -f "$headers"
+    return 1
+  fi
+  echo "$path => HTTP 302 Location: /login (expected unauthenticated behavior)"
+  rm -f "$headers"
+}
+assert_status "/login" "200"
+assert_status "/api/auth/me" "401"
+assert_login_redirect "/"
+assert_login_redirect "/admin"
+assert_login_redirect "/crm"
+assert_login_redirect "/crm/dashboard"
+assert_login_redirect "/crm/leads"
+HEALTH="$(curl -fsS --max-time 15 "http://127.0.0.1:$PORT/api/crm/health")"
+printf '%s' "$HEALTH" | grep -q '"database":"connected' || { echo "CRM database health check gagal: $HEALTH"; exit 1; }
 echo "CRM health: $HEALTH"
 echo "[9/9] Deploy selesai"
 echo "Commit production : $TARGET_COMMIT"
