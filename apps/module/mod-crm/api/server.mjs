@@ -24,12 +24,12 @@ async function readRecords(req,res,s,url){
  const add=(sql,value)=>{values.push(value);filters.push(sql.replace('?', '$'+values.length));};
  const status=url.searchParams.get('status'); if(status)add("data->>'status' = ?",status);
  const stage=url.searchParams.get('stage'); if(stage)add("data->>'stage' = ?",stage);
- const owner=url.searchParams.get('owner'); if(owner)add("data->>'owner' = ?",owner);
+ const owner=url.searchParams.get('owner'); if(owner==='Unassigned'){filters.push("(data->>'owner' IS NULL OR data->>'owner'='' OR data->>'owner'='Unassigned')");}else if(owner)add("data->>'owner' = ?",owner);
  const activityType=url.searchParams.get('activity_type'); if(activityType)add("data->>'type' = ?",activityType);
  if(q)add("search_vector @@ plainto_tsquery('simple', ?)",q);
  const where=filters.length?' AND '+filters.join(' AND '):'';
  const count=await pool.query('SELECT count(*)::int AS total FROM crm.records WHERE organization_id=$1 AND record_type=$2'+where,values);
- const sortMap={created_at:'created_at',updated_at:'updated_at',name:"(data->>'name')",value:"((data->>'value')::numeric)"};
+ const sortMap={created_at:'created_at',updated_at:'updated_at',name:"(data->>'name')",subject:"(data->>'subject')",company:"(data->>'company')",email:"(data->>'email')",phone:"(data->>'phone')",customer:"(data->>'customer')",stage:"(data->>'stage')",status:"(data->>'status')",owner:"(data->>'owner')",value:"NULLIF(data->>'value','')::numeric"};
  const sort=sortMap[url.searchParams.get('sort')]||'created_at';
  const direction=url.searchParams.get('direction')==='asc'?'ASC':'DESC';
  const rows=await pool.query('SELECT id,record_type,data,created_at,updated_at FROM crm.records WHERE organization_id=$1 AND record_type=$2'+where+' ORDER BY '+sort+' '+direction+' NULLS LAST LIMIT $'+(values.length+1)+' OFFSET $'+(values.length+2),[...values,limit,offset]);
