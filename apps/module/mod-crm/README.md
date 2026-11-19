@@ -1,40 +1,69 @@
 # ORVA CRM Module
 
 CRM is served through the ORVA web process and uses PostgreSQL schema `crm`.
+All CRM reads and writes are scoped to the authenticated user's active organization.
 
-## API foundation
+## CRM API
 
-- `GET /api/crm/health`: database connectivity check; no user data returned.
-- `GET /api/crm/leads`: lists up to 200 leads for the authenticated organization.
-- `POST /api/crm/leads`: creates a lead for the authenticated organization.
+- `GET /api/crm/health`: database connectivity check.
+- `GET /api/crm/records?entity={entity}`: paginated CRM records.
+- `POST /api/crm/records`: create a CRM record.
+- `PUT /api/crm/records/{uuid}`: update a CRM record.
+- `DELETE /api/crm/records/{uuid}`: delete a CRM record.
+- `GET /api/crm/options?kind={entity|users|related}`: tenant-scoped lookup options.
+- `GET /api/crm/timeline?record_id={uuid}`: record activity history, including deleted source records.
+- `GET /api/crm/reporting`: full-organization Opportunity metrics and monthly forecast.
+- `POST /api/crm/leads/{uuid}/convert`: transactional Lead conversion.
 
-All lead endpoints require a signed HS256 JWT in the Authorization Bearer header.
-The current integration contract expects claims:
+## Activity Plans
 
-- `sub`: authenticated ORVA user identifier.
-- `organization_id`: UUID of the active organization.
-- `permissions`: array containing `crm.leads:read`, `crm.leads:create`, or `crm:*`.
-- `exp`: token expiration timestamp.
-- `iss` and `aud`: checked when `ORVA_TOKEN_ISSUER` and `ORVA_TOKEN_AUDIENCE` are configured.
+An active Activity Plan must contain 1–20 steps in its `steps` JSON array. Supported triggers:
 
-The secret must be shared with the ORVA identity service through a protected runtime
-environment file. Never commit credentials or accept organization IDs from request bodies.
+- `Lead Created`
+- `Lead Qualified`
+- `Opportunity Created`
+- `Stage Changed`
 
-## Database
+Each step uses this shape:
 
-Install the module dependency with `npm install --omit=dev` in this directory.
-Apply the migration as database role `orva_app`:
-
-```bash
-psql -h 127.0.0.1 -U orva_app -d orva -v ON_ERROR_STOP=1 \
-  -f apps/module/mod-crm/migrations/001_create_leads.sql
+```json
+{
+  "subject": "Call customer",
+  "type": "Call",
+  "delay_days": 1,
+  "description": "Initial follow-up"
+}
 ```
 
-The migration creates only schema `crm` and its leads table/indexes. It does not
-modify other databases or existing schemas.
+Supported activity types for generated steps are `Call`, `Meeting`, `Email`, and `Task`.
+Delay is measured in calendar days (0–365) from trigger execution. Generated follow-ups
+are saved as normal CRM Activities with status `Planned`, linked to their source record,
+and visible in All Activities and the source record's Timeline.
 
-## Current limitations
+Activity Plan execution and generated Activities are committed in the same PostgreSQL
+transaction as the triggering Lead or Opportunity change. A tenant-scoped unique execution
+ledger prevents duplicate generation when a request is retried. Stage changes are tracked
+by transition, so a later move to another stage can run the matching plan again.
 
-This is the API foundation for Leads only. The existing CRM browser UI is still a
-localStorage prototype and is not yet connected to this API. The JWT claim contract
-must be matched against the ORVA identity service before enabling authenticated use.
+## Opportunity lifecycle and reporting
+
+- `Won` sets probability to 100%.
+- `Lost` sets probability to 0% and requires a valid tenant-owned Lost Reason.
+- Normal configured stages may set the default probability from Pipeline Stages.
+- Customer, Contact, Activity, owner, stage, and Lost Reason lookups are validated against
+  the active organization.
+- Reporting aggregates all Opportunity records for the organization, independent of UI
+  pagination. It reports open pipeline, weighted forecast, Won/Lost outcomes, win rate,
+  stage breakdown, and open forecast by Expected Close month.
+
+## Database migrations
+
+The deployment script applies CRM migrations in order, including:
+
+- `006_crm_activity_timeline.sql`
+- `007_crm_query_indexes.sql`
+- `008_crm_activity_plan_runs.sql`
+
+Run deployment only after reviewing the production preflight and taking the configured
+database and source backups. The deployment script performs syntax checks and HTTP smoke
+tests, but runtime behavior still needs verification against the production database.
