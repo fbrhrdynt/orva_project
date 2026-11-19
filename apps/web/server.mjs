@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleCrmApi } from '../module/mod-crm/api/server.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.join(root, 'public');
@@ -50,7 +51,21 @@ function sendFile(req, res, file) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
+  if (pathname.startsWith('/api/crm/')) {
+    try {
+      const handled = await handleCrmApi(req, res, pathname);
+      if (handled) return;
+    } catch (error) {
+      console.error('ORVA CRM API error:', error);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+      }
+      return;
+    }
+  }
+
   if (!['GET', 'HEAD'].includes(req.method)) {
     res.writeHead(405, { Allow: 'GET, HEAD' });
     return res.end('Method Not Allowed');
