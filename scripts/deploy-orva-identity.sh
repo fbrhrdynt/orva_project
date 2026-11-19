@@ -64,11 +64,10 @@ node --check api/identity.mjs
 node --check api/server.mjs
 node --check "$APP_DIR/apps/web/server.mjs"
 node --check "$APP_DIR/scripts/bootstrap-orva-admin.mjs"
-echo "[5/9] Jalankan migration Identity"
+echo "[5/10] Jalankan migration Identity dan CRM"
 export PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/002_create_core_identity.sql"
-unset PGPASSWORD
-echo "[6/9] Bootstrap ORVA Owner pertama jika belum ada"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/002_create_core_identity.sql"\npsql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/003_create_crm_records.sql"\nunset PGPASSWORD
+echo "[6/10] Bootstrap ORVA Owner pertama jika belum ada"
 OWNER_COUNT="$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT count(*) FROM core.users WHERE is_platform_owner=true")"
 if [[ "$OWNER_COUNT" == "0" ]]; then
   cd "$APP_DIR"
@@ -79,12 +78,12 @@ fi
 OWNER_COUNT="$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -Atc "SELECT count(*) FROM core.users WHERE is_platform_owner=true AND status='active'")"
 [[ "$OWNER_COUNT" -ge 1 ]] || { echo "Tidak ditemukan ORVA Owner aktif"; exit 1; }
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
-echo "[7/9] Permission dan restart service"
+echo "[7/10] Permission dan restart service"
 chown -R orva:orva "$APP_DIR"
 systemctl restart "$SERVICE"
 sleep 3
 systemctl is-active --quiet "$SERVICE"
-echo "[8/9] Smoke test"
+echo "[8/10] Smoke test"
 LOGIN_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/login")"
 AUTH_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api/auth/me")"
 ROOT_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/")"
@@ -95,13 +94,13 @@ HEALTH="$(curl --fail --silent --show-error "http://127.0.0.1:$PORT/api/crm/heal
 printf '%s' "$HEALTH" | grep -q '"database":"connected'
 echo "Login=$LOGIN_CODE, auth=$AUTH_CODE, protected routes=$ROOT_CODE/$ADMIN_CODE/$CRM_CODE"
 echo "CRM health: $HEALTH"
-echo "[9/9] Deploy selesai"
+echo "[9/10] Deploy selesai"
 echo "Commit production : $TARGET_COMMIT"
 echo "Commit sebelumnya: $PREVIOUS_COMMIT"
 echo "Database backup   : $BACKUP_FILE"
 echo "Source bundle     : $BACKUP_DIR/orva-before-identity-$STAMP.bundle"
 echo "Login             : https://$(hostname -f)/login"
 echo "Owner Console     : https://$(hostname -f)/admin"
-echo "Session           : 8 jam, HttpOnly + Secure + SameSite=Lax"
+echo "Session           : 8 jam, HttpOnly + Secure + SameSite=Lax"\necho "CRM records       : PostgreSQL, tenant-scoped + demo seed"
 DEPLOY_STARTED=0
 trap - EXIT ERR
