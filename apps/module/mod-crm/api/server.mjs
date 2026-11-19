@@ -38,7 +38,7 @@ async function readJson(req) {
 }
 
 function authorize(claims, permission) {
-  if (!claims.permissions.includes(permission) && !claims.permissions.includes('crm:*')) {
+  if (!claims.permissions.includes(permission) && !claims.permissions.includes('crm:*') && !claims.permissions.includes('*')) {
     throw Object.assign(new Error('Forbidden'), { status: 403 });
   }
 }
@@ -70,7 +70,7 @@ export async function handleCrmApi(req, res, pathname) {
 
   let claims;
   try {
-    claims = verifyAccessToken(match[1], process.env.ORVA_AUTH_SECRET);
+    claims = verifyAccessToken(token, process.env.ORVA_AUTH_SECRET);
   } catch {
     send(res, 401, { error: 'Invalid or expired access token' });
     return true;
