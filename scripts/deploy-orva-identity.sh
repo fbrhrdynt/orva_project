@@ -64,7 +64,7 @@ node --check api/identity.mjs
 node --check api/server.mjs
 node --check "$APP_DIR/apps/web/server.mjs"
 node --check "$APP_DIR/scripts/bootstrap-orva-admin.mjs"
-awk 'BEGIN { inside=0 } /<script>/ { inside=1; next } /<\\/script>/ { inside=0 } inside { print }' "$APP_DIR/apps/module/mod-crm/public/index.html" > /tmp/orva-crm-inline.js
+awk 'BEGIN { inside=0 } /<script>/ { inside=1; next } /<\/script>/ { inside=0 } inside { print }' "$APP_DIR/apps/module/mod-crm/public/index.html" > /tmp/orva-crm-inline.js
 node --check /tmp/orva-crm-inline.js
 echo "[5/9] Jalankan migration Identity dan CRM"
 export PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)"
