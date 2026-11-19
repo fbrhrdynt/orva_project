@@ -82,6 +82,7 @@ OWNER_COUNT="$(PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)" psql -h
 # Re-run idempotent CRM seed after the first owner exists.
 export PGPASSWORD="$(printf '%s' "$PGPASSWORD_B64" | base64 -d)"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/003_create_crm_records.sql"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_DIR/apps/module/mod-crm/migrations/004_crm_search_and_pagination.sql"
 unset PGPASSWORD
 unset PGPASSWORD_B64 ORVA_AUTH_SECRET
 echo "[7/9] Permission dan restart service"
