@@ -58,7 +58,7 @@ async function readRecords(req,res,s,url){
  const add=(sql,value)=>{values.push(value);filters.push(sql.replace('?', '$'+values.length));};
  const status=url.searchParams.get('status'); if(status)add("data->>'status' = ?",status);
  const stage=url.searchParams.get('stage'); if(stage)add("data->>'stage' = ?",stage);
- const owner=url.searchParams.get('owner'); if(owner==='Unassigned'){filters.push("(data->>'owner' IS NULL OR data->>'owner'='' OR data->>'owner'='Unassigned')");}else if(owner)add("data->>'owner' = ?",owner);
+ const owner=url.searchParams.get('owner'); if(owner==='Unassigned'){filters.push("((data->>'owner_id' IS NULL OR data->>'owner_id'='') AND (data->>'owner' IS NULL OR data->>'owner'='' OR data->>'owner'='Unassigned'))");}else if(owner)add("(data->>'owner_id' = ? OR (data->>'owner_id' IS NULL AND data->>'owner' = ?))",owner);
  const activityType=url.searchParams.get('activity_type'); if(activityType)add("data->>'type' = ?",activityType);
  if(q)add("search_vector @@ plainto_tsquery('simple', ?)",q);
  const where=filters.length?' AND '+filters.join(' AND '):'';
