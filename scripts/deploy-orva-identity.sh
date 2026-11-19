@@ -15,15 +15,18 @@ PREVIOUS_COMMIT=""
 DEPLOY_STARTED=0
 rollback_source() {
   local exit_code=$?
-  if [[ "$DEPLOY_STARTED" -eq 1 && -n "$PREVIOUS_COMMIT" ]]; then
+  trap - EXIT ERR
+  if [[ "$exit_code" -ne 0 && "$DEPLOY_STARTED" -eq 1 && -n "$PREVIOUS_COMMIT" ]]; then
     echo "[ROLLBACK] Deployment gagal. Mengembalikan source ke $PREVIOUS_COMMIT" >&2
     git -C "$APP_DIR" reset --hard "$PREVIOUS_COMMIT" || true
     systemctl restart "$SERVICE" || true
   fi
-  echo "[ERROR] Deployment gagal (exit $exit_code). Backup database: ${BACKUP_FILE:-belum dibuat}" >&2
+  if [[ "$exit_code" -ne 0 ]]; then
+    echo "[ERROR] Deployment gagal (exit $exit_code). Backup database: ${BACKUP_FILE:-belum dibuat}" >&2
+  fi
   exit "$exit_code"
 }
-trap rollback_source ERR
+trap rollback_source EXIT
 [[ "$EUID" -eq 0 ]] || { echo "Jalankan: sudo bash scripts/deploy-orva-identity.sh"; exit 1; }
 for cmd in git node npm psql pg_dump pg_restore systemctl curl base64 sudo; do command -v "$cmd" >/dev/null 2>&1 || { echo "Command tidak ditemukan: $cmd"; exit 1; }; done
 [[ -d "$APP_DIR/.git" && -f "$ENV_FILE" ]] || { echo "Repository /opt/orva atau $ENV_FILE tidak ditemukan"; exit 1; }
@@ -101,4 +104,4 @@ echo "Login             : https://$(hostname -f)/login"
 echo "Owner Console     : https://$(hostname -f)/admin"
 echo "Session           : 8 jam, HttpOnly + Secure + SameSite=Lax"
 DEPLOY_STARTED=0
-trap - ERR
+trap - EXIT ERR
