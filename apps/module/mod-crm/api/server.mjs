@@ -13,10 +13,28 @@ async function body(req){let n=0,chunks=[];for await(const c of req){n+=c.length
 function token(req){const b=(req.headers.authorization||'').match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];const c=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('orva_session='));return b||(c?decodeURIComponent(c.slice(13)):null);}
 async function session(req){const t=token(req);if(!t)return null;let claims;try{claims=verifyAccessToken(t,process.env.ORVA_AUTH_SECRET);}catch{return null;}const q=await pool.query("SELECT u.id,u.is_platform_owner,u.status user_status,m.organization_id,m.status membership_status,o.status organization_status FROM core.users u JOIN core.memberships m ON m.user_id=u.id JOIN core.organizations o ON o.id=m.organization_id WHERE u.id=$1 AND m.organization_id=$2 LIMIT 1",[claims.sub,claims.organization_id]);const s=q.rows[0];if(!s||s.user_status!=='active'||s.membership_status!=='active'||s.organization_status!=='active')return null;const access=await pool.query("SELECT 1 FROM core.organization_modules om LEFT JOIN core.user_module_access a ON a.organization_id=om.organization_id AND a.module_key=om.module_key AND a.user_id=$2 WHERE om.organization_id=$1 AND om.module_key='crm' AND om.enabled=true AND ($3=true OR COALESCE(a.can_access,false)=true)",[s.organization_id,s.id,s.is_platform_owner]);return access.rowCount?{...s,claims}:null;}
 async function readRecords(req,res,s,url){
- const type=url.searchParams.get('entity');if(!TYPES.has(type))return send(res,400,{error:'Invalid CRM entity'});
- const q=url.searchParams.get('q')?.trim().slice(0,120)||'';
- const result=await pool.query(`SELECT id,record_type,data,created_at,updated_at FROM crm.records WHERE organization_id=$1 AND record_type=$2 AND ($3='' OR data::text ILIKE '%'||$3||'%') ORDER BY created_at DESC LIMIT 500`,[s.organization_id,type,q]);
- send(res,200,{data:result.rows});
+ const type=url.searchParams.get('entity');
+ if(!TYPES.has(type))return send(res,400,{error:'Invalid CRM entity'});
+ const q=(url.searchParams.get('q')||'').trim().slice(0,120);
+ const limit=Math.min(100,Math.max(10,Number.parseInt(url.searchParams.get('limit')||'25',10)||25));
+ const page=Math.max(1,Number.parseInt(url.searchParams.get('page')||'1',10)||1);
+ const offset=(page-1)*limit;
+ const filters=[];
+ const values=[s.organization_id,type];
+ const add=(sql,value)=>{values.push(value);filters.push(sql.replace('?', '$'+values.length));};
+ const status=url.searchParams.get('status'); if(status)add("data->>'status' = ?",status);
+ const stage=url.searchParams.get('stage'); if(stage)add("data->>'stage' = ?",stage);
+ const owner=url.searchParams.get('owner'); if(owner)add("data->>'owner' = ?",owner);
+ const activityType=url.searchParams.get('activity_type'); if(activityType)add("data->>'type' = ?",activityType);
+ if(q)add("search_vector @@ plainto_tsquery('simple', ?)",q);
+ const where=filters.length?' AND '+filters.join(' AND '):'';
+ const count=await pool.query('SELECT count(*)::int AS total FROM crm.records WHERE organization_id=$1 AND record_type=$2'+where,values);
+ const sortMap={created_at:'created_at',updated_at:'updated_at',name:"(data->>'name')",value:"((data->>'value')::numeric)"};
+ const sort=sortMap[url.searchParams.get('sort')]||'created_at';
+ const direction=url.searchParams.get('direction')==='asc'?'ASC':'DESC';
+ const rows=await pool.query('SELECT id,record_type,data,created_at,updated_at FROM crm.records WHERE organization_id=$1 AND record_type=$2'+where+' ORDER BY '+sort+' '+direction+' NULLS LAST LIMIT $'+(values.length+1)+' OFFSET $'+(values.length+2),[...values,limit,offset]);
+ const total=count.rows[0].total;
+ send(res,200,{data:rows.rows,pagination:{page,limit,total,total_pages:Math.ceil(total/limit)}});
 }
 export async function handleCrmApi(req,res,pathname){
  if(!pathname.startsWith('/api/crm/'))return false;
