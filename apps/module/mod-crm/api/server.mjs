@@ -26,6 +26,26 @@ async function readOptions(req,res,s,url){
  }
  send(res,200,{data:rows});
 }
+async function validateLookups(type,data,organizationId){
+ const recordRelations={source_id:['lead_sources'],company_id:['customers'],customer_id:['customers'],stage_id:['pipeline_stages'],type_id:['activity_types']};
+ for(const [field,types] of Object.entries(recordRelations)){
+  const id=data[field];if(!id)continue;
+  const q=await pool.query('SELECT 1 FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type=ANY($3::text[])',[id,organizationId,types]);
+  if(!q.rowCount)throw Object.assign(new Error('Relasi '+field+' tidak valid atau bukan milik organisasi ini.'),{status:422});
+ }
+ for(const field of ['owner_id','manager_id']){
+  const id=data[field];if(!id)continue;
+  const q=await pool.query("SELECT 1 FROM core.users u JOIN core.memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.organization_id=$2 AND u.status='active' AND m.status='active'",[id,organizationId]);
+  if(!q.rowCount)throw Object.assign(new Error('User yang dipilih tidak valid.'),{status:422});
+ }
+ if(data.related_to_id){
+  const allowed={leads:['leads'],customers:['customers'],contacts:['contacts'],opportunities:['opportunities']};
+  const types=allowed[data.related_to_type];
+  if(!types)throw Object.assign(new Error('Tipe record terkait tidak valid.'),{status:422});
+  const q=await pool.query('SELECT 1 FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type=ANY($3::text[])',[data.related_to_id,organizationId,types]);
+  if(!q.rowCount)throw Object.assign(new Error('Record terkait tidak valid atau bukan milik organisasi ini.'),{status:422});
+ }
+}
 async function readRecords(req,res,s,url){
  const type=url.searchParams.get('entity');
  if(!TYPES.has(type))return send(res,400,{error:'Invalid CRM entity'});
@@ -59,14 +79,14 @@ export async function handleCrmApi(req,res,pathname){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{
    if(req.method==='GET'){await readRecords(req,res,s,url);return true;}
-   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);send(res,201,{data:r.rows[0]});return true;}
+   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups(type,data,s.organization_id);const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);send(res,201,{data:r.rows[0]});return true;}
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  const m=pathname.match(/^\/api\/crm\/records\/([0-9a-f-]{36})$/i);
  if(m&&['PUT','DELETE'].includes(req.method)){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{if(req.method==='DELETE'){const r=await pool.query('DELETE FROM crm.records WHERE id=$1 AND organization_id=$2 RETURNING id',[m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{ok:true});return true;}
-   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{data:r.rows[0]});return true;
+   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups((await pool.query('SELECT record_type FROM crm.records WHERE id=$1 AND organization_id=$2',[m[1],s.organization_id])).rows[0]?.record_type,data,s.organization_id);const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});send(res,200,{data:r.rows[0]});return true;
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  if(pathname==='/api/crm/leads'&&['GET','POST'].includes(req.method)){send(res,410,{error:'Use /api/crm/records?entity=leads'});return true;}
