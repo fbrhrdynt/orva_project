@@ -32,13 +32,16 @@ test -s "$SRC/app.html" \
 
 echo "[2/6] Validate source"
 node --check "$SRC/server.mjs"
-node --input-type=module -e "import('./$SRC/server.mjs').catch(() => process.exit(1))" >/dev/null 2>&1 && { echo "[ERROR] Server unexpectedly started during validation" >&2; exit 1; } || true
 node -e "const p=require('$SRC/package.json'); if(p.type!=='module') process.exit(1)"
 
 echo "[3/6] Backup current release"
 if [[ -d "$APP/public" || -f "$APP/server.mjs" || -f "$APP/package.json" ]]; then
   BACKUP="$BACKUPS/orva-crm-$(date +%Y%m%d-%H%M%S).tar.gz"
-  tar -czf "$BACKUP" -C "$APP" public server.mjs package.json 2>/dev/null || {
+  backup_items=()
+  for item in public server.mjs package.json; do
+    [[ ! -e "$APP/$item" ]] || backup_items+=("$item")
+  done
+  tar -czf "$BACKUP" -C "$APP" "${backup_items[@]}" || {
     echo "[ERROR] Backup failed; refusing to continue" >&2
     exit 1
   }
