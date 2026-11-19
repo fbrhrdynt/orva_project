@@ -81,7 +81,7 @@ git -C "$APP_DIR" reset --hard "$TARGET_COMMIT"
 
 echo "[5/9] Install dependency CRM"
 cd "$APP_DIR/apps/module/mod-crm"
-npm install --omit=dev --no-audit --no-fund
+npm install --omit=dev --no-audit --no-fund --package-lock=false
 
 echo "[6/9] Jalankan migration CRM"
 export PGPASSWORD="$(printf '%s' "$(sed -n 's/^PGPASSWORD_B64=//p' "$ENV_FILE")" | base64 -d)"
