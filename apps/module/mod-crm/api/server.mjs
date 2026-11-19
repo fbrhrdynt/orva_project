@@ -73,6 +73,52 @@ async function readRecords(req,res,s,url){
 async function logEvent(db,{organizationId,recordId,recordType,eventType,summary,payload={},actorId}){
  await db.query('INSERT INTO crm.activity_events(organization_id,record_id,record_type,event_type,summary,payload,actor_id) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)',[organizationId,recordId,recordType,eventType,summary,JSON.stringify(payload),actorId||null]);
 }
+function validateActivityPlan(data){
+ if(String(data.active||'Yes').toLowerCase()!=='no'){
+  if(!Array.isArray(data.steps)||data.steps.length<1||data.steps.length>20)throw Object.assign(new Error('Activity Plan aktif wajib memiliki 1–20 langkah follow-up.'),{status:422});
+  for(const [i,step] of data.steps.entries()){
+   if(!step||typeof step!=='object'||!String(step.subject||'').trim()||String(step.subject).length>200)throw Object.assign(new Error('Subject langkah ke-'+(i+1)+' wajib diisi (maksimal 200 karakter).'),{status:422});
+   const delay=Number(step.delay_days);if(!Number.isInteger(delay)||delay<0||delay>365)throw Object.assign(new Error('Delay langkah ke-'+(i+1)+' harus 0–365 hari.'),{status:422});
+   if(!['Call','Meeting','Email','Task'].includes(String(step.type||'Call')))throw Object.assign(new Error('Tipe aktivitas langkah ke-'+(i+1)+' tidak valid.'),{status:422});
+  }
+ }
+}
+async function executeActivityPlans(client,{organizationId,sourceId,sourceType,triggerKey,sourceData,actorId}){
+ const plans=await client.query("SELECT id,data FROM crm.records WHERE organization_id=$1 AND record_type='activity_plans' AND lower(COALESCE(data->>'active','yes')) IN ('yes','true','1') AND data->>'trigger'=$2",[organizationId,triggerKey]);
+ let created=0;
+ for(const plan of plans.rows){
+  const steps=Array.isArray(plan.data?.steps)?plan.data.steps:[];
+  if(!steps.length)continue;
+  const run=await client.query("INSERT INTO crm.activity_plan_runs(organization_id,plan_id,source_record_id,trigger_key) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING id",[organizationId,plan.id,sourceId,triggerKey]);
+  if(!run.rowCount)continue;
+  for(let i=0;i<steps.length;i++){
+   const step=steps[i],delay=Math.max(0,Math.min(365,Number(step.delay_days)||0));
+   const due=new Date();due.setUTCDate(due.getUTCDate()+delay);
+   const dueDate=due.toISOString().slice(0,10);
+   const subject=String(step.subject||'').trim();
+   if(!subject)continue;
+   const activityData={subject,type:String(step.type||'Call'),description:String(step.description||''),related_to:String(sourceData.name||sourceData.company||sourceData.subject||sourceType),related_to_id:sourceId,related_to_type:sourceType,source_plan_id:plan.id,plan_run_id:run.rows[0].id,plan_step_index:i,due_date:dueDate,status:'Planned',owner:sourceData.owner||'',owner_id:sourceData.owner_id||''};
+   const activity=await client.query("INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,'activities',$2::jsonb,$3,$3) RETURNING id",[organizationId,JSON.stringify(activityData),actorId]);
+   await logEvent(client,{organizationId,recordId:activity.rows[0].id,recordType:'activities',eventType:'planned',summary:'Follow-up dibuat dari Activity Plan: '+subject,payload:{plan_id:plan.id,source_record_id:sourceId,trigger:triggerKey,due_date:dueDate},actorId});
+   created++;
+  }
+ }
+ if(created)await logEvent(client,{organizationId,recordId:sourceId,recordType:sourceType,eventType:'follow_ups_generated',summary:created+' follow-up dibuat otomatis dari Activity Plan',payload:{trigger:triggerKey,count:created},actorId});
+ return created;
+}
+async function validateOpportunityLifecycle(client,data,organizationId){
+ const stage=String(data.stage||'').trim();
+ if(stage==='Lost'&&!data.lost_reason_id)throw Object.assign(new Error('Lost Reason wajib dipilih saat Opportunity berstatus Lost.'),{status:422});
+ if(stage==='Won')data.probability=100;
+ else if(stage==='Lost')data.probability=0;
+ else if(data.probability!==undefined&&(!Number.isFinite(Number(data.probability))||Number(data.probability)<0||Number(data.probability)>100))throw Object.assign(new Error('Probability harus berada di antara 0 sampai 100.'),{status:422});
+ if(data.stage_id){
+  const q=await client.query("SELECT data->>'name' AS name,data->>'probability' AS probability FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type='pipeline_stages'",[data.stage_id,organizationId]);
+  if(!q.rowCount)throw Object.assign(new Error('Pipeline Stage tidak valid.'),{status:422});
+  if(stage&&q.rows[0].name!==stage)throw Object.assign(new Error('Stage dan Pipeline Stage ID tidak sesuai.'),{status:422});
+  if(!['Won','Lost'].includes(stage)&&q.rows[0].probability!==null)data.probability=Number(q.rows[0].probability)||0;
+ }
+}
 async function readTimeline(req,res,s,url){
  const id=url.searchParams.get('record_id')||'';
  if(!/^[0-9a-f-]{36}$/i.test(id))return send(res,400,{error:'record_id tidak valid.'});
@@ -123,14 +169,46 @@ export async function handleCrmApi(req,res,pathname){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{
    if(req.method==='GET'){await readRecords(req,res,s,url);return true;}
-   if(req.method==='POST'){const b=await body(req),type=b.entity,data=b.data;if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups(type,data,s.organization_id);const r=await pool.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:type,eventType:'created',summary:(type==='activities'?'Aktivitas dibuat: ':'Record dibuat: ')+name,payload:{},actorId:s.id}).catch(e=>console.error('CRM audit event write failed:',e));send(res,201,{data:r.rows[0]});return true;}
+   if(req.method==='POST'){
+    const b=await body(req),type=b.entity,data=b.data;
+    if(!TYPES.has(type)||!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});
+    const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});
+    if(type==='activity_plans')validateActivityPlan(data);
+    await validateLookups(type,data,s.organization_id);
+    const client=await pool.connect();
+    try{
+     await client.query('BEGIN');
+     if(type==='opportunities')await validateOpportunityLifecycle(client,data,s.organization_id);
+     const r=await client.query('INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,$2,$3::jsonb,$4,$4) RETURNING id,record_type,data,created_at,updated_at',[s.organization_id,type,JSON.stringify(data),s.id]);
+     await logEvent(client,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:type,eventType:'created',summary:(type==='activities'?'Aktivitas dibuat: ':'Record dibuat: ')+name,payload:{},actorId:s.id});
+     if(type==='leads')await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:r.rows[0].id,sourceType:'leads',triggerKey:'Lead Created',sourceData:data,actorId:s.id});
+     if(type==='opportunities')await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:r.rows[0].id,sourceType:'opportunities',triggerKey:'Opportunity Created',sourceData:data,actorId:s.id});
+     await client.query('COMMIT');send(res,201,{data:r.rows[0]});return true;
+    }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
+   }
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  const m=pathname.match(/^\/api\/crm\/records\/([0-9a-f-]{36})$/i);
  if(m&&['PUT','DELETE'].includes(req.method)){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{if(req.method==='DELETE'){const r=await pool.query('DELETE FROM crm.records WHERE id=$1 AND organization_id=$2 RETURNING id,record_type,data');if(!r.rowCount)return send(res,404,{error:'Record not found'});await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:r.rows[0].record_type,eventType:'deleted',summary:'Record dihapus: '+String(r.rows[0].data?.name||r.rows[0].data?.subject||r.rows[0].record_type),payload:{},actorId:s.id}).catch(e=>console.error('CRM audit event write failed:',e));send(res,200,{ok:true});return true;}
-   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});const name=String(data.name||data.subject||'').trim();if(!name||name.length>200)return send(res,422,{error:'Name/subject is required (max 200)'});await validateLookups((await pool.query('SELECT record_type FROM crm.records WHERE id=$1 AND organization_id=$2',[m[1],s.organization_id])).rows[0]?.record_type,data,s.organization_id);const r=await pool.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);if(!r.rowCount)return send(res,404,{error:'Record not found'});await logEvent(pool,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:r.rows[0].record_type,eventType:'updated',summary:'Record diperbarui: '+String(data.name||data.subject||r.rows[0].record_type),payload:{},actorId:s.id}).catch(e=>console.error('CRM audit event write failed:',e));send(res,200,{data:r.rows[0]});return true;
+   const b=await body(req),data=b.data;if(!data||typeof data!=='object'||Array.isArray(data))return send(res,422,{error:'Invalid record'});
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const before=await client.query('SELECT record_type,data FROM crm.records WHERE id=$1 AND organization_id=$2 FOR UPDATE',[m[1],s.organization_id]);
+    if(!before.rowCount){await client.query('ROLLBACK');return send(res,404,{error:'Record not found'});}
+    const type=before.rows[0].record_type,name=String(data.name||data.subject||'').trim();if(!name||name.length>200)throw Object.assign(new Error('Name/subject is required (max 200)'),{status:422});
+    if(type==='activity_plans')validateActivityPlan(data);
+    await validateLookups(type,data,s.organization_id);
+    if(type==='opportunities')await validateOpportunityLifecycle(client,data,s.organization_id);
+    const r=await client.query('UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4 RETURNING id,record_type,data,created_at,updated_at',[JSON.stringify(data),s.id,m[1],s.organization_id]);
+    await logEvent(client,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:type,eventType:'updated',summary:'Record diperbarui: '+String(data.name||data.subject||type),payload:{},actorId:s.id});
+    const oldData=before.rows[0].data||{};
+    if(type==='leads'&&oldData.status!=='Qualified'&&data.status==='Qualified')await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:m[1],sourceType:'leads',triggerKey:'Lead Qualified',sourceData:data,actorId:s.id});
+    if(type==='opportunities'&&oldData.stage!==data.stage)await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:m[1],sourceType:'opportunities',triggerKey:'Stage Changed',sourceData:data,actorId:s.id});
+    await client.query('COMMIT');send(res,200,{data:r.rows[0]});return true;
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
  }
  if(pathname==='/api/crm/leads'&&['GET','POST'].includes(req.method)){send(res,410,{error:'Use /api/crm/records?entity=leads'});return true;}
