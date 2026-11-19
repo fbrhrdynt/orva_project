@@ -7,7 +7,7 @@ const pool = new Pool({
   password: process.env.PGPASSWORD_B64 ? Buffer.from(process.env.PGPASSWORD_B64,'base64').toString('utf8') : process.env.PGPASSWORD,
   max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000, application_name: 'orva-crm-api'
 });
-const TYPES = new Set(['leads','customers','contacts','opportunities','activities','lead_sources','pipeline_stages','activity_types','lost_reasons','sales_teams']);
+const TYPES = new Set(['leads','customers','contacts','opportunities','activities','lead_sources','pipeline_stages','activity_types','lost_reasons','sales_teams','activity_plans','opportunity_tags','lead_mining_requests']);
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
 async function body(req){let n=0,chunks=[];for await(const c of req){n+=c.length;if(n>65536)throw Object.assign(new Error('Payload too large'),{status:413});chunks.push(c);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw Object.assign(new Error('Invalid JSON'),{status:400});}}
 function token(req){const b=(req.headers.authorization||'').match(/^Bearer ([A-Za-z0-9._-]+)$/)?.[1];const c=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('orva_session='));return b||(c?decodeURIComponent(c.slice(13)):null);}
