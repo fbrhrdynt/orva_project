@@ -92,7 +92,7 @@ async function convertLead(req,res,s,leadId){
   if(!customerName){await client.query('ROLLBACK');return send(res,422,{error:'Nama perusahaan atau lead wajib tersedia.'});}
   const normalizedEmail=String(data.email||'').trim().toLowerCase();
   if(normalizedEmail){
-   const duplicate=await client.query(\"SELECT id,data->>'name' AS name FROM crm.records WHERE organization_id=$1 AND record_type='customers' AND lower(trim(COALESCE(data->>'email','')))= $2 ORDER BY created_at ASC LIMIT 1\",[s.organization_id,normalizedEmail]);
+   const duplicate=await client.query(\"SELECT id,data->>'name' AS name FROM crm.records WHERE organization_id=$1 AND record_type='customers' AND lower(btrim(data->>'email'))= $2 ORDER BY created_at ASC LIMIT 1\",[s.organization_id,normalizedEmail]);
    if(duplicate.rowCount){await client.query('ROLLBACK');return send(res,409,{error:'Customer dengan email yang sama sudah terdaftar. Periksa Customer tersebut sebelum melanjutkan konversi.',existing_customer:{id:duplicate.rows[0].id,name:duplicate.rows[0].name||'Unnamed Customer'}});}
   }
   const customerData={name:customerName,type:'Company',email:data.email||'',phone:data.phone||'',category:'',group:'',website:''};
