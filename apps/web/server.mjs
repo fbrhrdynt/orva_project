@@ -1,3 +1,95 @@
-import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
-const root=path.dirname(fileURLToPath(import.meta.url));const web=path.join(root,'public');const crm=path.resolve(root,'../module/mod-crm/public');const host=process.env.HOST||'127.0.0.1';const port=Number(process.env.PORT||'3200');const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
-if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid PORT');const server=http.createServer((req,res)=>{if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{Allow:'GET, HEAD'});return res.end('Method Not Allowed')}let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{res.writeHead(400);return res.end('Bad Request')}let base=web,file;if(pathname==='/')file=path.join(web,'index.html');else if(pathname==='/dashboard')file=path.join(web,'dashboard.html');else if(pathname==='/crm'||pathname.startsWith('/crm/')){base=crm;file=path.resolve(crm,pathname==='/crm'? 'index.html':'.'+pathname.slice(4))}else{res.writeHead(404);return res.end('Not Found')}if(file!==base&&!file.startsWith(base+path.sep)){res.writeHead(403);return res.end('Forbidden')}fs.stat(file,(err,st)=>{if(err||!st.isFile()){res.writeHead(404);return res.end('Not Found')}res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-cache'});if(req.method==='HEAD')return res.end();fs.createReadStream(file).pipe(res)})});server.listen(port,host,()=>console.log('ORVA web listening on '+host+':'+port));server.on('error',e=>{console.error(e);process.exit(1)});
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(fileURLToPath(import.meta.url));
+const webRoot = path.join(root, 'public');
+const crmRoot = path.resolve(root, '../module/mod-crm/public');
+const host = process.env.HOST || '127.0.0.1';
+const port = Number(process.env.PORT || 3200);
+
+const contentTypes = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon'
+};
+
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error('Invalid PORT configuration');
+}
+
+function resolveInside(base, relativePath) {
+  const target = path.resolve(base, relativePath);
+  return target === base || target.startsWith(base + path.sep) ? target : null;
+}
+
+function sendFile(req, res, file) {
+  fs.stat(file, (error, stats) => {
+    if (error || !stats.isFile()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Not Found');
+    }
+
+    res.writeHead(200, {
+      'Content-Type': contentTypes[path.extname(file).toLowerCase()] || 'application/octet-stream',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Cache-Control': 'no-cache'
+    });
+
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file).pipe(res);
+  });
+}
+
+const server = http.createServer((req, res) => {
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    res.writeHead(405, { Allow: 'GET, HEAD' });
+    return res.end('Method Not Allowed');
+  }
+
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch {
+    res.writeHead(400);
+    return res.end('Bad Request');
+  }
+
+  if (pathname === '/') return sendFile(req, res, path.join(webRoot, 'index.html'));
+  if (pathname === '/dashboard') return sendFile(req, res, path.join(webRoot, 'dashboard.html'));
+  if (pathname === '/crm' || pathname.startsWith('/crm/')) {
+    const relative = pathname === '/crm' || pathname === '/crm/' ? 'index.html' : pathname.slice(5);
+    const file = resolveInside(crmRoot, relative);
+    if (!file) {
+      res.writeHead(403);
+      return res.end('Forbidden');
+    }
+    return sendFile(req, res, file);
+  }
+
+  const asset = resolveInside(webRoot, pathname.replace(/^\/+/, ''));
+  if (!asset || path.extname(pathname) === '') {
+    res.writeHead(404);
+    return res.end('Not Found');
+  }
+
+  return sendFile(req, res, asset);
+});
+
+server.on('error', (error) => {
+  console.error('ORVA web server error:', error);
+  process.exit(1);
+});
+
+server.listen(port, host, () => {
+  console.log(`ORVA web listening on ${host}:${port}`);
+});
