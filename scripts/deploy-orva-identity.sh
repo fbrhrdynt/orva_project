@@ -107,7 +107,7 @@ assert_login_redirect() {
   local path="$1" headers actual
   headers="$(mktemp)"
   actual="$(curl -sS --max-time 15 -D "$headers" -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$path")"
-  if [[ "$actual" != "302" ]] || ! tr -d '\\r' < "$headers" | grep -Eiq '^Location:[[:space:]]*/login[[:space:]]*
+  if [[ "$actual" != "302" ]] || ! tr -d '\r' < "$headers" | grep -Eiq '^Location:[[:space:]]*/login[[:space:]]*$'; then
     echo "$path => HTTP $actual; expected 302 Location: /login"
     cat "$headers"
     rm -f "$headers"
