@@ -36,7 +36,7 @@ echo "[2/9] Siapkan backup"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 install -d -o ubuntu -g ubuntu -m 750 "$BACKUP_DIR"
 DB_BACKUP="$BACKUP_DIR/orva-before-crm-$STAMP.dump"
-sudo -u postgres pg_dump -Fc --no-owner --dbname="$DB_NAME" --file="$DB_BACKUP"
+sudo -u postgres pg_dump -Fc --no-owner --dbname="$DB_NAME" > "$DB_BACKUP"
 chown ubuntu:ubuntu "$DB_BACKUP"
 chmod 640 "$DB_BACKUP"
 git -C "$APP_DIR" bundle create "$BACKUP_DIR/orva-repo-before-crm-$STAMP.bundle" --all
@@ -76,7 +76,7 @@ chmod 640 "$ENV_FILE"
 unset DB_PASSWORD_B64 AUTH_SECRET OLD_AUTH_SECRET
 
 echo "[4/9] Update source dari branch terpilih"
-git -C "$APP_DIR" checkout "$BRANCH"
+git -C "$APP_DIR" checkout -B "$BRANCH" "$TARGET_COMMIT"
 git -C "$APP_DIR" reset --hard "$TARGET_COMMIT"
 
 echo "[5/9] Install dependency CRM"
