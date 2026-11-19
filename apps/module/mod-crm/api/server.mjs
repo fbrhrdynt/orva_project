@@ -70,11 +70,34 @@ async function readRecords(req,res,s,url){
  const total=count.rows[0].total;
  send(res,200,{data:rows.rows,pagination:{page,limit,total,total_pages:Math.ceil(total/limit)}});
 }
+async function convertLead(req,res,s,leadId){
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const leadResult=await client.query("SELECT id,data FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type='leads' FOR UPDATE",[leadId,s.organization_id]);
+  if(!leadResult.rowCount){await client.query('ROLLBACK');return send(res,404,{error:'Lead tidak ditemukan.'});}
+  const lead=leadResult.rows[0],data=lead.data||{};
+  if(data.status==='Converted'||data.converted_customer_id){await client.query('ROLLBACK');return send(res,409,{error:'Lead sudah pernah dikonversi.'});}
+  const customerName=String(data.company||data.name||'').trim();
+  if(!customerName){await client.query('ROLLBACK');return send(res,422,{error:'Nama perusahaan atau lead wajib tersedia.'});}
+  const customerData={name:customerName,type:'Company',email:data.email||'',phone:data.phone||'',category:'',group:'',website:''};
+  const customer=await client.query("INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,'customers',$2::jsonb,$3,$3) RETURNING id,data",[s.organization_id,JSON.stringify(customerData),s.id]);
+  let contact=null;
+  if(data.name||data.email||data.phone){
+   const contactData={name:String(data.name||customerName).trim(),company:customerName,company_id:customer.rows[0].id,job_title:'',email:data.email||'',phone:data.phone||'',owner:data.owner||'',owner_id:data.owner_id||''};
+   contact=await client.query("INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by) VALUES($1,'contacts',$2::jsonb,$3,$3) RETURNING id,data",[s.organization_id,JSON.stringify(contactData),s.id]);
+  }
+  const converted={...data,status:'Converted',converted_customer_id:customer.rows[0].id,converted_contact_id:contact?.rows[0]?.id||null,converted_at:new Date().toISOString(),converted_by:s.id};
+  await client.query("UPDATE crm.records SET data=$1::jsonb,updated_by=$2,updated_at=now() WHERE id=$3 AND organization_id=$4",[JSON.stringify(converted),s.id,leadId,s.organization_id]);
+  await client.query('COMMIT');
+  return send(res,200,{data:{lead_id:leadId,customer_id:customer.rows[0].id,contact_id:contact?.rows[0]?.id||null}});
+ }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
+}
 export async function handleCrmApi(req,res,pathname){
  if(!pathname.startsWith('/api/crm/'))return false;
  const url=new URL(req.url,'http://orva.local');
  if(pathname==='/api/crm/health'&&req.method==='GET'){try{await pool.query('SELECT 1');send(res,200,{status:'ok',module:'crm',database:'connected'});}catch{send(res,503,{error:'Database unavailable'});}return true;}
- if(pathname==='/api/crm/options'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readOptions(req,res,s,url);}catch(e){console.error('CRM options API:',e);send(res,500,{error:'Unable to load lookup options'});}return true;}
+ const conversion=pathname.match(/^\\/api\\/crm\\/leads\\/([0-9a-f-]{36})\\/convert$/i);\n if(conversion&&req.method==='POST'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await convertLead(req,res,s,conversion[1]);}catch(e){console.error('CRM lead conversion:',e);send(res,500,{error:'Lead conversion failed'});}return true;}\n if(pathname==='/api/crm/options'&&req.method==='GET'){const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}try{await readOptions(req,res,s,url);}catch(e){console.error('CRM options API:',e);send(res,500,{error:'Unable to load lookup options'});}return true;}
  if(pathname==='/api/crm/records'){
   const s=await session(req);if(!s){send(res,401,{error:'Authentication required'});return true;}
   try{
