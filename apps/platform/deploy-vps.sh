@@ -12,6 +12,7 @@ USER_NAME="ubuntu"
 KEY="/home/ubuntu/.ssh/orva_deploy_key"
 NGINX_DIR="/etc/nginx/conf.d"
 NGINX_FILE="$NGINX_DIR/orva-platform.conf"
+UNIT_FILE="/etc/systemd/system/$SERVICE.service"
 LEGACY_NGINX_FILE="$NGINX_DIR/orva.conf"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$BACKUPS/deploy-$STAMP"
@@ -31,6 +32,11 @@ rollback() {
       rm -rf "$APP/public"
       rm -f "$APP/server.mjs" "$APP/package.json"
       tar -xzf "$BACKUP_DIR/release.tar.gz" -C "$APP" || true
+    fi
+    if [[ -f "$BACKUP_DIR/service.unit" ]]; then
+      cp -a "$BACKUP_DIR/service.unit" "$UNIT_FILE"
+    elif [[ -f "$BACKUP_DIR/service.unit.absent" ]]; then
+      rm -f "$UNIT_FILE"
     fi
     if [[ -f "$BACKUP_DIR/orva-platform.conf" ]]; then
       cp -a "$BACKUP_DIR/orva-platform.conf" "$NGINX_FILE"
@@ -102,6 +108,8 @@ if [[ -f "$APP/server.mjs" || -f "$APP/package.json" || -d "$APP/public" ]]; the
   done
   if (("${#items[@]}")); then tar -czf "$BACKUP_DIR/release.tar.gz" -C "$APP" "${items[@]}"; fi
 fi
+[[ ! -f "$UNIT_FILE" ]] || cp -a "$UNIT_FILE" "$BACKUP_DIR/service.unit"
+[[ -f "$UNIT_FILE" ]] || touch "$BACKUP_DIR/service.unit.absent"
 [[ ! -f "$NGINX_FILE" ]] || cp -a "$NGINX_FILE" "$BACKUP_DIR/orva-platform.conf"
 [[ -f "$NGINX_FILE" ]] || touch "$BACKUP_DIR/orva-platform.conf.absent"
 [[ ! -f "$LEGACY_NGINX_FILE" ]] || cp -a "$LEGACY_NGINX_FILE" "$BACKUP_DIR/orva.conf"
