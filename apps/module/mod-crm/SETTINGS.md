@@ -45,7 +45,7 @@ The deploy script applies and verifies both migrations.
 - Create, edit and archive SMTP configurations.
 - SMTP secrets are encrypted with AES-256-GCM when `ORVA_SETTINGS_ENCRYPTION_KEY` is configured (minimum 32 bytes).
 - SMTP password is never returned by the API.
-- Live SMTP handshake/authentication test and mail delivery are not implemented yet; do not treat a saved SMTP row as a verified connection.
+- Test Connection performs a live SMTP greeting/EHLO and TLS/STARTTLS negotiation check and stores a test event. It does not authenticate or send a message; successful connectivity is not proof that delivery credentials are valid.
 
 ### Automation
 - Register allowlisted server-action references and edit/disable them.
@@ -75,7 +75,7 @@ All routes below require an authenticated platform-owner session.
 - `GET/POST /api/admin/roles`; `PATCH/DELETE /api/admin/roles/:id`; `GET/PUT /api/admin/roles/:id/policies`
 - `GET/POST /api/admin/currencies`; `PATCH /api/admin/currencies/:code`
 - `GET/POST /api/admin/exchange-rates`; `DELETE /api/admin/exchange-rates/:id`
-- `GET/POST /api/admin/smtp`; `PATCH/DELETE /api/admin/smtp/:id`
+- `GET/POST /api/admin/smtp`; `PATCH/DELETE /api/admin/smtp/:id`; `POST /api/admin/smtp/:id/test`
 - `GET/POST /api/admin/server-actions`; `PATCH/DELETE /api/admin/server-actions/:id`
 - `GET/POST /api/admin/automation`; `PATCH/DELETE /api/admin/automation/:id`
 - `GET/POST /api/admin/views`; `PATCH/DELETE /api/admin/views/:id`
