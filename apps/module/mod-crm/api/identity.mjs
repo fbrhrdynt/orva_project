@@ -25,7 +25,8 @@ export async function handleIdentityApi(req,res,pathname){
    const u=q.rows[0],ok=!!u&&u.user_status==='active'&&await verifyPassword(password,u.password_hash);
    if(!ok){send(res,401,{error:'Email atau password tidak valid.'});return true;}
    const access=await pool.query(\`SELECT mod.module_key FROM core.modules mod JOIN core.organization_modules om ON om.module_key=mod.module_key AND om.organization_id=$1 AND om.enabled=true LEFT JOIN core.user_module_access a ON a.module_key=mod.module_key AND a.organization_id=$1 AND a.user_id=$2 WHERE mod.status='available' AND ($3=true OR COALESCE(a.can_access,false)=true)\`,[u.organization_id,u.id,u.is_platform_owner]);
-   const permissions=u.is_platform_owner?['orva:owner','*']:['workspace:read',...access.rows.filter(x=>x.module_key==='crm').map(()=> 'crm:*')];\n   setCookie(res,issueToken({sub:u.id,organization_id:u.organization_id,permissions,role:u.role,is_platform_owner:u.is_platform_owner}));
+   const permissions=u.is_platform_owner?['orva:owner','*']:['workspace:read',...access.rows.filter(x=>x.module_key==='crm').map(()=> 'crm:*')];
+   setCookie(res,issueToken({sub:u.id,organization_id:u.organization_id,permissions,role:u.role,is_platform_owner:u.is_platform_owner}));
    send(res,200,{user:{id:u.id,email:u.email,full_name:u.full_name,role:u.role,is_platform_owner:u.is_platform_owner},organization:{id:u.organization_id,name:u.organization_name}});return true;
   }
   if(pathname==='/api/auth/logout'&&req.method==='POST'){clearCookie(res);send(res,200,{ok:true});return true;}
