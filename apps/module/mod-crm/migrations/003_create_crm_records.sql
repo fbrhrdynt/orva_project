@@ -43,6 +43,6 @@ samples(record_type,data) AS (VALUES
 )
 INSERT INTO crm.records(organization_id,record_type,data,created_by,updated_by)
 SELECT org.id,s.record_type,s.data,owner_user.id,owner_user.id
-FROM org CROSS JOIN samples CROSS JOIN owner_user
+FROM org CROSS JOIN samples AS s CROSS JOIN owner_user
 WHERE NOT EXISTS (SELECT 1 FROM crm.records r WHERE r.organization_id=org.id);
 COMMIT;
