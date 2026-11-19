@@ -1,9 +1,0 @@
-{
-  "name": "@orva/crm",
-  "version": "1.0.1",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "start": "node server.mjs"
-  }
-}
