@@ -6,7 +6,7 @@ const pool = new Pool({
   port: Number(process.env.PGPORT || 5432),
   database: process.env.PGDATABASE || 'orva',
   user: process.env.PGUSER || 'orva_app',
-  password: process.env.PGPASSWORD,
+  password: process.env.PGPASSWORD_B64 ? Buffer.from(process.env.PGPASSWORD_B64, 'base64').toString('utf8') : process.env.PGPASSWORD,
   max: Number(process.env.PGPOOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
