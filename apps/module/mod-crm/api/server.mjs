@@ -121,7 +121,7 @@ async function validateOpportunityLifecycle(client,data,organizationId){
  if(data.stage_id){
   const q=await client.query("SELECT data->>'name' AS name,data->>'probability' AS probability FROM crm.records WHERE id=$1 AND organization_id=$2 AND record_type='pipeline_stages'",[data.stage_id,organizationId]);
   if(!q.rowCount)throw Object.assign(new Error('Pipeline Stage tidak valid.'),{status:422});
-  if(stage&&q.rows[0].name!==stage)throw Object.assign(new Error('Stage dan Pipeline Stage ID tidak sesuai.'),{status:422});
+  if(stage&&!['Won','Lost'].includes(stage)&&q.rows[0].name!==stage)throw Object.assign(new Error('Stage dan Pipeline Stage ID tidak sesuai.'),{status:422});
   if(!['Won','Lost'].includes(stage)&&q.rows[0].probability!==null)data.probability=Number(q.rows[0].probability)||0;
  }
 }
@@ -228,7 +228,7 @@ export async function handleCrmApi(req,res,pathname){
     await logEvent(client,{organizationId:s.organization_id,recordId:r.rows[0].id,recordType:type,eventType:'updated',summary:'Record diperbarui: '+String(data.name||data.subject||type),payload:{},actorId:s.id});
     const oldData=before.rows[0].data||{};
     if(type==='leads'&&oldData.status!=='Qualified'&&data.status==='Qualified')await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:m[1],sourceType:'leads',triggerKey:'Lead Qualified',sourceData:data,actorId:s.id});
-    if(type==='opportunities'&&oldData.stage!==data.stage)await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:m[1],sourceType:'opportunities',triggerKey:'Stage Changed',runKey:'Stage Changed:'+String(data.stage||'Unspecified'),sourceData:data,actorId:s.id});
+    if(type==='opportunities'&&oldData.stage!==data.stage)await executeActivityPlans(client,{organizationId:s.organization_id,sourceId:m[1],sourceType:'opportunities',triggerKey:'Stage Changed',runKey:'Stage Changed:'+String(oldData.stage||'Unspecified')+'>'+String(data.stage||'Unspecified')+':'+before.rows[0].updated_at.toISOString(),sourceData:data,actorId:s.id});
     await client.query('COMMIT');send(res,200,{data:r.rows[0]});return true;
    }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
   }catch(e){send(res,e.status||500,{error:e.status?e.message:'CRM request failed'});if(!e.status)console.error('CRM records API:',e);return true;}
