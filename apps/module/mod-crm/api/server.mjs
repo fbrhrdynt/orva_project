@@ -23,6 +23,7 @@ async function readOptions(req,res,s,url){
   if(!types.every(t=>TYPES.has(t)))return send(res,400,{error:'Invalid lookup type'});
   const r=await pool.query("SELECT id,record_type,COALESCE(data->>'name',data->>'subject') AS label FROM crm.records WHERE organization_id=$1 AND record_type=ANY($2::text[]) AND COALESCE(data->>'name',data->>'subject','') ILIKE '%'||$3||'%' ORDER BY label LIMIT $4",[s.organization_id,types,q,limit]);
   rows=r.rows.map(x=>({id:x.id,type:x.record_type,label:(kind==='related'?x.record_type.replace(/s$/,'')+' · ':'')+x.label}));
+  if(kind==='pipeline_stages')rows.push({id:'',type:'pipeline_stages',label:'Won'},{id:'',type:'pipeline_stages',label:'Lost'});
  }
  send(res,200,{data:rows});
 }
