@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS core.permission_catalog (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+INSERT INTO core.permission_catalog(permission_key,module_key,resource_key,action_key,description)
+SELECT m.module_key||'.'||a.action_key,m.module_key,m.module_key,a.action_key,
+       initcap(replace(a.action_key,'_',' '))||' access for '||m.name
+FROM core.modules m
+CROSS JOIN (VALUES ('read'),('create'),('update'),('delete'),('export'),('approve')) AS a(action_key)
+ON CONFLICT(permission_key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS core.role_record_scopes (
   role_id uuid NOT NULL REFERENCES core.security_roles(id) ON DELETE CASCADE,
   resource_key varchar(100) NOT NULL,
